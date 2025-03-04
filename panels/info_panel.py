@@ -1,6 +1,8 @@
 from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel
 
+from misc.types import Align
 from widgets.label import Label
+from widgets.monitor_line import MonitorLine
 
 
 class InfoPanel(QWidget):
@@ -8,22 +10,32 @@ class InfoPanel(QWidget):
         super().__init__()
         grid = QGridLayout()
 
-        self.idLabel = Label("Код производителя датчика: xxx",color="orange", border=True, borderColor="blue", borderWidth=2)
-        self.typeLabel = Label("Код модели датчика: xxx")
-        self.softLabel = Label("Версия ПО: xxx")
-        self.hardLabel = Label("Аппаратная версия: xxx")
-        self.measureLabel = Label("Измеренное значние: хх")
-        self.currentLabel = Label("Токовый выход: хх")
-        self.sensorFaultLabel = Label("Ошибка датчика")
-        self.errorLinkLabel = Label("Ошибка связи")
+        self.sensorStatusMonitor = MonitorLine("Статус датчика:")
+        self.hartStatusMonitor = MonitorLine("Статус связи по HART:")
+        self.idMonitor = MonitorLine("Код производителя датчика:")
+        self.typeMonitor = MonitorLine("Код модели датчика:")
+        self.softMonitor = MonitorLine("Версия ПО:")
+        self.hardMonitor = MonitorLine("Аппаратная версия:")
+        self.measureMonitor = MonitorLine("Измеренное значние:")
+        self.currentMonitor = MonitorLine("Токовый выход (мА):")
 
-        grid.addWidget(self.idLabel, 0, 0)
-        grid.addWidget(self.typeLabel, 0, 1)
-        grid.addWidget(self.softLabel, 0, 2)
-        grid.addWidget(self.hardLabel, 0, 3)
-        grid.addWidget(self.measureLabel, 1, 0)
-        grid.addWidget(self.currentLabel, 1, 1)
-        grid.addWidget(self.sensorFaultLabel, 1, 2)
-        grid.addWidget(self.errorLinkLabel, 1, 3)
+        row = 0
+        grid.addWidget(self.idMonitor.getLabelWidget(), row, 0)
+        grid.addWidget(self.idMonitor.getValueWidget(), row, 1)
+        grid.addWidget(self.typeMonitor.getLabelWidget(), row, 2)
+        grid.addWidget(self.typeMonitor.getValueWidget(), row, 3)
+        grid.addWidget(self.softMonitor.getLabelWidget(), row, 4)
+        grid.addWidget(self.softMonitor.getValueWidget(), row, 5)
+        grid.addWidget(self.hardMonitor.getLabelWidget(), row, 6)
+        grid.addWidget(self.hardMonitor.getValueWidget(), row, 7)
+        row += 1
+        grid.addWidget(self.measureMonitor.getLabelWidget(), row, 0)
+        grid.addWidget(self.measureMonitor.getValueWidget(), row, 1)
+        grid.addWidget(self.currentMonitor.getLabelWidget(), row, 2)
+        grid.addWidget(self.currentMonitor.getValueWidget(), row, 3)
+        grid.addWidget(self.sensorStatusMonitor.getLabelWidget(), row, 4)
+        grid.addWidget(self.sensorStatusMonitor.getValueWidget(), row, 5)
+        grid.addWidget(self.hartStatusMonitor.getLabelWidget(), row, 6)
+        grid.addWidget(self.hartStatusMonitor.getValueWidget(), row, 7)
 
         self.setLayout(grid)

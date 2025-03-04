@@ -1,7 +1,9 @@
-from PyQt6.QtWidgets import QMainWindow, QLabel, QWidget, QVBoxLayout, QPushButton
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMainWindow, QLabel, QWidget, QVBoxLayout
 
 from misc.types import LineType
 from panels.com_panel import ComPanel
+from panels.edit_panel import EditPanel
 from panels.info_panel import InfoPanel
 from widgets.button import Button
 from widgets.edit_line import EditLine
@@ -17,21 +19,15 @@ class MainWindow(QMainWindow):
         versionLabel = QLabel(version, parent=self)
         self.comPanel = ComPanel()
         self.infoPanel = InfoPanel()
-        self.unitLine = EditLine("Единица измерения: ", LineType.UNIT)
-        self.tagLine = EditLine("Метка (тег): ", LineType.TAG)
-        self._4mALine = EditLine("4мА: ", LineType._4mA)
-        self._20mALine = EditLine("20мА", LineType._20mA)
-        self.zeroButton = Button("Обнулить датчик")
+        self.editPanel = EditPanel(width=int(windowWidth / 2))
 
         box.addWidget(self.comPanel)
         box.addWidget(self.infoPanel)
-        box.addWidget(self.unitLine)
-        box.addWidget(self.tagLine)
-        box.addWidget(self._4mALine)
-        box.addWidget(self._20mALine)
-        box.addWidget(self.zeroButton)
-        box.addWidget(versionLabel)
+        box.addWidget(self.editPanel)
+        box.addWidget(versionLabel, stretch=1, alignment=Qt.AlignmentFlag.AlignBottom)
 
+        box.addStretch()
+        box.setDirection(QVBoxLayout.Direction.TopToBottom)
         self.setWindowTitle(windowLabel)
         self.setFixedSize(windowWidth, windowHeight)
         self.mainWidget.setLayout(box)

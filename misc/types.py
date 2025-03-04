@@ -15,3 +15,6 @@ class Align(Enum):
     RIGHT = Qt.AlignmentFlag.AlignRight
     TOP = Qt.AlignmentFlag.AlignTop
     BOTTOM = Qt.AlignmentFlag.AlignBottom
+    CENTER = Qt.AlignmentFlag.AlignCenter
+    VCENTER = Qt.AlignmentFlag.AlignVCenter
+    RIGHT_VCENTER = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight

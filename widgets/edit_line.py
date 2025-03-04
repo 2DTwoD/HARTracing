@@ -1,30 +1,29 @@
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QLineEdit, QPushButton, QComboBox
+from PyQt6.QtWidgets import QLineEdit, QPushButton, QComboBox, QWidget, QGridLayout
 
 from misc.types import LineType
+from widgets.button import Button
+from widgets.combo import ComboBox
+from widgets.monitor_line import MonitorLine
+from widgets.text_field import TextField
 
 
-class EditLine(QWidget):
+class EditLine(MonitorLine):
     def __init__(self, labelText, lineType: LineType):
-        super().__init__()
+        super().__init__(labelText)
         self.lineType = lineType
-        box = QHBoxLayout()
-        label = QLabel(labelText)
-        self.curValLabel = QLabel("xxx")
+
         if lineType == LineType.UNIT:
-            self.editField = QComboBox()
+            self.editField = ComboBox()
         else:
-            self.editField = QLineEdit()
-
+            self.editField = TextField()
         self.editField.setMaximumWidth(100)
-        self.applyButton = QPushButton("Применить")
+        self.applyButton = Button("Применить")
 
-        box.addWidget(label, alignment=Qt.AlignmentFlag.AlignLeft)
-        box.addWidget(self.curValLabel, alignment=Qt.AlignmentFlag.AlignLeft)
-        box.addWidget(self.editField, alignment=Qt.AlignmentFlag.AlignLeft)
-        box.addWidget(self.applyButton, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.append(self.editField)
+        self.append(self.applyButton)
 
-        box.addStretch()
-        box.setDirection(QHBoxLayout.Direction.LeftToRight)
+    def getEditWidget(self):
+        return self[2]
 
-        self.setLayout(box)
+    def getApplyWidget(self):
+        return self[3]

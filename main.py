@@ -64,6 +64,6 @@ version = "v1.0.0"
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = di.Container.mainWindow(version=version, windowWidth=800, windowHeight=500, windowLabel="HARTracing")
+    window = di.Container.mainWindow(version=version, windowWidth=800, windowHeight=300, windowLabel="HARTracing")
     window.init()
     app.exec()
