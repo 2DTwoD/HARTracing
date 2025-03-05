@@ -1,11 +1,10 @@
-from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QGridLayout
 
-from misc.types import Align
-from widgets.label import Label
+from misc.updater import Updater
 from widgets.monitor_line import MonitorLine
 
 
-class InfoPanel(QWidget):
+class InfoPanel(QWidget, Updater):
     def __init__(self):
         super().__init__()
         grid = QGridLayout()
@@ -39,3 +38,7 @@ class InfoPanel(QWidget):
         grid.addWidget(self.hartStatusMonitor.getValueWidget(), row, 7)
 
         self.setLayout(grid)
+        self.startUpdate()
+
+    def updateAction(self):
+        pass

@@ -15,3 +15,12 @@ class MonitorLine(list):
 
     def getValueWidget(self):
         return self[1]
+
+    def setValue(self, value):
+        self.value.setText(str(value))
+
+    def setValueColor(self, color: str):
+        self.value.setColor(color)
+
+    def setValueBackground(self, color: str):
+        self.value.setBackground(color)
