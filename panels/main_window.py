@@ -1,12 +1,9 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow, QLabel, QWidget, QVBoxLayout
 
-from misc.types import LineType
 from panels.com_panel import ComPanel
 from panels.edit_panel import EditPanel
 from panels.info_panel import InfoPanel
-from widgets.button import Button
-from widgets.edit_line import EditLine
 
 
 class MainWindow(QMainWindow):
@@ -19,7 +16,7 @@ class MainWindow(QMainWindow):
         versionLabel = QLabel(version, parent=self)
         self.comPanel = ComPanel()
         self.infoPanel = InfoPanel()
-        self.editPanel = EditPanel(width=int(windowWidth / 2))
+        self.editPanel = EditPanel()
 
         box.addWidget(self.comPanel)
         box.addWidget(self.infoPanel)

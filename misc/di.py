@@ -1,7 +1,9 @@
 from dependency_injector import containers, providers
 
-from panels.main_window import MainWindow
+from com.com_dict import ComDict
+from com.communication import Com
 
 
 class Container(containers.DeclarativeContainer):
-    mainWindow = providers.Singleton(MainWindow)
+    com = providers.Singleton(Com)
+    comDict = providers.Singleton(ComDict)

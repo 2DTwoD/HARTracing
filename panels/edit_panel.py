@@ -1,13 +1,16 @@
 from PyQt6.QtWidgets import QWidget, QGridLayout
 
 from misc.types import LineType
+from misc.updater import Updater
 from widgets.button import Button
 from widgets.edit_line import EditLine
+from misc import di
 
 
-class EditPanel(QWidget):
-    def __init__(self, width=400):
+class EditPanel(QWidget, Updater):
+    def __init__(self):
         super().__init__()
+        self.comDict = di.Container.comDict()
         self.grid = QGridLayout()
         self.row = 0
         self.column = 0
@@ -26,8 +29,8 @@ class EditPanel(QWidget):
         self.row += 1
         self.grid.addWidget(zeroButton, self.row, 0)
 
-        # self.setFixedWidth(width)
         self.setLayout(self.grid)
+        self.startUpdate()
 
     def addRow(self, line: EditLine):
         self.grid.addWidget(line.getLabelWidget(), self.row, 0)
@@ -45,3 +48,9 @@ class EditPanel(QWidget):
         self.column += 1
         self.grid.addWidget(line.getApplyWidget(), self.row, self.column)
         self.column += 1
+
+    def updateAction(self):
+        self.unitLine.setValue(self.comDict.getValue("unit"))
+        self.tagLine.setValue(self.comDict.getValue("tag"))
+        self._4mALine.setValue(self.comDict.getValue("4mA"))
+        self._20mALine.setValue(self.comDict.getValue("20mA"))

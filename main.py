@@ -58,12 +58,12 @@ import sys
 
 from PyQt6.QtWidgets import QApplication
 
-from misc import di
+from panels.main_window import MainWindow
 
 version = "v1.0.0"
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = di.Container.mainWindow(version=version, windowWidth=800, windowHeight=300, windowLabel="HARTracing")
+    window = MainWindow(version=version, windowWidth=800, windowHeight=300, windowLabel="HARTracing")
     window.init()
     app.exec()

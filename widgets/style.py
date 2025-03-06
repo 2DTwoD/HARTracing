@@ -39,10 +39,14 @@ class ColorStyle:
         self._updateColorSheet()
 
     def setColor(self, color):
+        if self.color == color:
+            return
         self.color = color
         self._updateColorSheet()
 
     def setBackground(self, color):
+        if self.background == color:
+            return
         self.background = color
         self._updateColorSheet()
 
@@ -63,14 +67,20 @@ class BorderStyle:
         self._updateBorderSheet()
 
     def setBorder(self, value):
+        if self.border == value:
+            return
         self.border = value
         self._updateBorderSheet()
 
     def setBorderColor(self, color):
+        if self.borderColor == color:
+            return
         self.borderColor = color
         self._updateBorderSheet()
 
     def setBorderWidth(self, width):
+        if self.borderWidth == width:
+            return
         self.borderWidth = width
         self._updateBorderSheet()
 

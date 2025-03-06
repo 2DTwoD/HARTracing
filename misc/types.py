@@ -18,3 +18,10 @@ class Align(Enum):
     CENTER = Qt.AlignmentFlag.AlignCenter
     VCENTER = Qt.AlignmentFlag.AlignVCenter
     RIGHT_VCENTER = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight
+
+
+class CommStatus(Enum):
+    CONNECT = "V"
+    DISCONNECT = "X"
+    LINK_ERROR = "Ошибка связи"
+    RECEIVE_ERROR = "Ошибка передачи"

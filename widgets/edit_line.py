@@ -1,6 +1,5 @@
-from PyQt6.QtWidgets import QLineEdit, QPushButton, QComboBox, QWidget, QGridLayout
-
 from misc.types import LineType
+from misc.updater import Updater
 from widgets.button import Button
 from widgets.combo import ComboBox
 from widgets.monitor_line import MonitorLine
@@ -8,8 +7,8 @@ from widgets.text_field import TextField
 
 
 class EditLine(MonitorLine):
-    def __init__(self, labelText, lineType: LineType):
-        super().__init__(labelText)
+    def __init__(self, labelText, lineType: LineType, color="black", background="white"):
+        super().__init__(labelText, color=color, background=background)
         self.lineType = lineType
 
         if lineType == LineType.UNIT:
