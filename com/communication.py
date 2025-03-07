@@ -8,12 +8,13 @@ from com.hart import HARTconnector
 import serial.tools.list_ports
 import serial
 
-from misc.types import CommStatus
-
+from misc.types import CommStatus, MessageType
+from misc import di
 
 class Com:
     def __init__(self):
         super().__init__()
+        self.comDict = di.Container.comDict()
         self.thread = None
         self.port = None
         self.cycleIndex = 0
@@ -22,11 +23,11 @@ class Com:
         self.start = False
         self.status = CommStatus.DISCONNECT
         self.hartConnector = HARTconnector(0)
-        self.cycleCommands = [self.hartConnector.readUniqueIdentifier,
-                              self.hartConnector.readPrimaryVariable,
-                              self.hartConnector.readCurrentAndPercentOfRange,
-                              self.hartConnector.readTagDescriptorDate,
-                              self.hartConnector.readOutputInformation]
+        self.cycleCommandSeq = [MessageType.READ_UNIQUE_IDENTIFIER,
+                              MessageType.READ_PRIMARY_VARIABLE,
+                              MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE,
+                              MessageType.READ_TAG_DESCRIPTOR_DATE,
+                              MessageType.READ_OUTPUT_INFORMATION]
 
         #Скорость передачи (1200)
         self.baudrate = 1200
@@ -34,12 +35,11 @@ class Com:
         self.parity = "O"
         #Стоповые биты (=1)
         self.stopBits = 1
-        #Период обмена, сек
-        self.sendPeriod = 0.1
+
+        # Период обмена, сек
+        self.sendPeriod = 0.3
         #Время возникновения ошибки передачи, если нет ответа, сек
-        self.readTimeOut = 0.5
-        #Разное
-        self.bufferSize = 10
+        self.readTimeOut = 1
         self.maxCountForErrorVis = 20
 
         self.errorCounter = self.maxCountForErrorVis
@@ -56,24 +56,25 @@ class Com:
             self.port.timeout = self.readTimeOut
 
             while self.start:
-                # time.sleep(self.sendPeriod)
-
+                time.sleep(self.sendPeriod)
                 self.port.reset_input_buffer()
                 self.port.reset_output_buffer()
-
                 if self.sendCommand:
                     self.port.write(self.sendCommand.pop(0)())
                     resp = self.port.read(self.bufferSize)
                     continue
                 else:
-                    command = self.cycleCommands[self.cycleIndex]()
-                    self.port.write(command[0])
-                    resp = self.port.read(command[1])
-                    print(command)
-                    print(resp)
+                    command, length = self.hartConnector.getCommandAndLength(self.cycleCommandSeq[self.cycleIndex])
+                    self.port.write(command)
+                    resp = self.port.read(length)
+                    print(command.hex())
+                    print(resp.hex())
+                    res = self.hartConnector.parseResponse(resp, self.cycleCommandSeq[self.cycleIndex])
+                    self.comDict.setAll(res)
+                    pass
 
                 self.cycleIndex += 1
-                if self.cycleIndex >= len(self.cycleCommands):
+                if self.cycleIndex >= len(self.cycleCommandSeq):
                     self.cycleIndex = 0
 
                 if self.status != CommStatus.CONNECT:

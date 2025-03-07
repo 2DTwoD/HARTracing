@@ -5,7 +5,7 @@ class Updater:
 
     def __init__(self):
         #Период обновления объектов, мсек
-        interval = 200
+        interval = 500
         self.timer = QTimer()
         self.timer.setInterval(interval)
         self.timer.timeout.connect(self.startUpdate)

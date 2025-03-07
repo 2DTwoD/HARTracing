@@ -25,3 +25,11 @@ class CommStatus(Enum):
     DISCONNECT = "X"
     LINK_ERROR = "Ошибка связи"
     RECEIVE_ERROR = "Ошибка передачи"
+
+
+class MessageType(Enum):
+    READ_UNIQUE_IDENTIFIER = {"id": 0, "commandNumber": 0, "dataLen": 12}
+    READ_PRIMARY_VARIABLE = {"id": 1, "commandNumber": 1, "dataLen": 5}
+    READ_CURRENT_AND_PERCENT_OF_RANGE = {"id": 2, "commandNumber": 2, "dataLen": 8}
+    READ_TAG_DESCRIPTOR_DATE = {"id": 3, "commandNumber": 13, "dataLen": 21}
+    READ_OUTPUT_INFORMATION = {"id": 4, "commandNumber": 15, "dataLen": 17}
