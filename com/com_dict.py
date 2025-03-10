@@ -17,6 +17,7 @@ class ComDict(dict):
         self.__setitem__("hartStatus", True)
         self.__setitem__("unit", "XXX")
         self.__setitem__("tag", "XXXXXXXX")
+        self.__setitem__("descriptorDate", None)
         self.__setitem__("4mA", 0x00)
         self.__setitem__("20mA", 0x00)
 

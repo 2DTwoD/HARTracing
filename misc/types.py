@@ -33,3 +33,6 @@ class MessageType(Enum):
     READ_CURRENT_AND_PERCENT_OF_RANGE = {"id": 2, "commandNumber": 2, "dataLen": 8}
     READ_TAG_DESCRIPTOR_DATE = {"id": 3, "commandNumber": 13, "dataLen": 21}
     READ_OUTPUT_INFORMATION = {"id": 4, "commandNumber": 15, "dataLen": 17}
+    WRITE_TAG_DESCRIPTOR_DATE = {"id": 5, "commandNumber": 18, "dataLen": 21}
+    WRITE_RANGE_VALUES = {"id": 6, "commandNumber": 35, "dataLen": 9}
+    WRITE_PV_UNITS = {"id": 7, "commandNumber": 44, "dataLen": 1}
