@@ -6,7 +6,8 @@ from widgets.text_field import TextField
 
 
 class EditLine(MonitorLine):
-    def __init__(self, labelText, lineType: LineType, color="black", background="white", editValue=None, editLen=None):
+    def __init__(self, labelText, lineType: LineType, color="black", background="white", editValue=None, editLen=None,
+                 editNumeric=False):
         super().__init__(labelText, color=color, background=background)
 
         if lineType == LineType.UNIT:
@@ -15,7 +16,7 @@ class EditLine(MonitorLine):
             self.editField.addItems(editValue)
         else:
             editValue = "" if editValue is None else editValue
-            self.editField = TextField(editValue, length=editLen)
+            self.editField = TextField(editValue, length=editLen, numeric=editNumeric)
         self.editField.setMaximumWidth(100)
         self.applyButton = Button("Применить")
 

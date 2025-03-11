@@ -7,12 +7,9 @@ class ComDict(dict):
     def __init__(self):
         super().__init__()
         self.lock = threading.Lock()
-        self.__setitem__("manuf", 0x00)
-        self.__setitem__("devType", 0x00)
-        self.__setitem__("soft", 0x00)
-        self.__setitem__("hard", 0x00)
         self.__setitem__("measure", 0x00)
         self.__setitem__("current", 0x00)
+        self.__setitem__("percent", 0x00)
         self.__setitem__("sensorStatus",  True)
         self.__setitem__("hartStatus", True)
         self.__setitem__("unit", "XXX")

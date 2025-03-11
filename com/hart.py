@@ -82,8 +82,12 @@ unitDict = {
     "Hz": 38, "%": 57, "pH": 59, "°Bx": 101, "%w": 105, "%v": 106,
     "°Bg": 107, "proof/vol": 108, "proof/mass": 109, "ppm": 139,
     "%c": 148, "%q": 150, "ft3/lb": 152, "pF": 153, "ml/l": 154,
-    "dB": 156, "°P": 160, "%LEL": 161, "ppb": 169
+    "dB": 156, "°P": 160, "%LEL": 161, "ppb": 169,
+    #Unknown
+    "unknown": 252
 }
+
+messageLenWithoutData = 16
 
 
 class HARTconnector:
@@ -144,34 +148,28 @@ class HARTconnector:
         try:
             receivedCheckSum = response[-1]
             calculatedCheckSum = HARTconnector.getCheckSum(response[5:-1])
-            if messageType == MessageType.READ_UNIQUE_IDENTIFIER:
-                pass
             if receivedCheckSum != calculatedCheckSum:
                 raise Exception("Wrong check sum")
+            if len(response) != messageLenWithoutData + messageType.value["dataLen"]:
+                raise Exception("Wrong data length")
             status = response[13:15]
             result = {"sensorStatus": (status[1] >> 7) > 0, "hartStatus": (status[0] & 0x7F) > 0}
             data = response[15: 15 + messageType.value["dataLen"]]
-            if messageType == MessageType.READ_UNIQUE_IDENTIFIER:
-                result["manuf"] = data[1]
-                result["devType"] = data[2]
-                result["soft"] = data[6]
-                result["hard"] = data[7]
-            elif messageType == MessageType.READ_PRIMARY_VARIABLE:
+            if messageType == MessageType.READ_PRIMARY_VARIABLE:
                 result["unit"] = data[0]
-                result["measure"] = round(struct.unpack('f', data[4: 0: -1])[0], 3)
+                result["measure"] = round(struct.unpack('>f', data[1:])[0], 3)
             elif messageType == MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE:
-                result["current"] = round(struct.unpack('f', data[3:: -1])[0], 2)
+                result["current"] = round(struct.unpack('>f', data[0: 4])[0], 2)
+                result["percent"] = round(struct.unpack('>f', data[4:])[0], 1)
             elif messageType == MessageType.READ_TAG_DESCRIPTOR_DATE:
                 result["tag"] = HARTconnector.getASCIIstr(data[0:6])
                 result["descriptorDate"] = data[6:]
-                # print(HARTconnector.getTreeBytesFromFourSymbols("=13C").hex())
-                # print(HARTconnector.getTreeBytesFromFourSymbols("J20 ").hex())
             elif messageType == MessageType.READ_OUTPUT_INFORMATION:
-                result["4mA"] = round(struct.unpack('f', data[10: 6: -1])[0], 3)
-                result["20mA"] = round(struct.unpack('f', data[6: 2: -1])[0], 3)
+                result["4mA"] = round(struct.unpack('>f', data[7: 11])[0], 3)
+                result["20mA"] = round(struct.unpack('>f', data[3: 7])[0], 3)
             return result
         except:
-            return {}
+            return None
 
     @staticmethod
     def getASCIIstr(data: bytes):

@@ -19,19 +19,13 @@ class Com:
         self.port = None
         self.cycleIndex = 0
         self.errorCounter = 0
-        self.sendCommand = []
         self.start = False
         self.status = CommStatus.DISCONNECT
         self.hartConnector = HARTconnector(0)
-        self.cycleCommandSeq = [MessageType.READ_UNIQUE_IDENTIFIER,
-                                MessageType.READ_PRIMARY_VARIABLE,
-                                MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE,
-                                MessageType.READ_TAG_DESCRIPTOR_DATE,
-                                MessageType.READ_PRIMARY_VARIABLE,
-                                MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE,
-                                MessageType.READ_OUTPUT_INFORMATION,
-                                MessageType.READ_PRIMARY_VARIABLE,
-                                MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE,
+        self.cycleCommandSeq = [(MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE, None),
+                                (MessageType.READ_TAG_DESCRIPTOR_DATE, None),
+                                (MessageType.READ_PRIMARY_VARIABLE, None),
+                                (MessageType.READ_OUTPUT_INFORMATION, None),
                                 ]
 
         #Скорость передачи (1200)
@@ -53,8 +47,11 @@ class Com:
     def send(self, messageType: MessageType, data=None):
         if self.disconnected():
             return
-        if messageType not in self.sendCommand:
-            self.sendCommand.append((messageType, data))
+        self.cycleCommandSeq.append((messageType, data))
+        if messageType == MessageType.WRITE_TAG_DESCRIPTOR_DATE:
+            self.cycleCommandSeq.append((MessageType.READ_TAG_DESCRIPTOR_DATE, None))
+        else:
+            self.cycleCommandSeq.append((MessageType.READ_OUTPUT_INFORMATION, None))
 
     def runSending(self, device: str):
         try:
@@ -66,19 +63,21 @@ class Com:
                 self.port.reset_input_buffer()
                 self.port.reset_output_buffer()
 
-                messageType, data = (self.sendCommand.pop(0) if self.sendCommand
-                                     else (self.cycleCommandSeq[self.cycleIndex], None))
+                messageType, data = self.cycleCommandSeq[self.cycleIndex]
                 command, length = self.hartConnector.getCommandAndLength(messageType, data=data)
 
                 self.port.write(command)
                 response = self.port.read(length)
-                if messageType == MessageType.WRITE_RANGE_VALUES:
-                    print(command)
-                    print(response)
-                result = self.hartConnector.parseResponse(response, self.cycleCommandSeq[self.cycleIndex])
-                self.comDict.setAll(result)
 
-                self.cycleIndex += 1
+                result = self.hartConnector.parseResponse(response, messageType)
+                if result is not None:
+                    self.comDict.setAll(result)
+                else:
+                    self.status = CommStatus.RECEIVE_ERROR
+                if messageType.value["deleteFlag"]:
+                    del self.cycleCommandSeq[self.cycleIndex]
+                else:
+                    self.cycleIndex += 1
                 if self.cycleIndex >= len(self.cycleCommandSeq):
                     self.cycleIndex = 0
 
