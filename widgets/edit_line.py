@@ -29,6 +29,14 @@ class EditLine(MonitorLine):
         else:
             return self.editField.text()
 
+    def setEditValue(self, value):
+        if type(self.editField) == ComboBox:
+            index = self.editField.findText(str(value))
+            if index != -1:
+                self.editField.setCurrentIndex(index)
+        else:
+            self.editField.setText(str(value))
+
     def getEditWidget(self):
         return self[2]
 

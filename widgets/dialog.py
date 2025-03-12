@@ -11,6 +11,7 @@ class Confirm(QDialog):
         yesBut = QPushButton("Да")
         cancelBut = QPushButton("Отмена")
         message = QLabel(text)
+        message.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         yesBut.clicked.connect(self.accept)
         cancelBut.clicked.connect(self.reject)

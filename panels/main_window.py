@@ -4,6 +4,8 @@ from PyQt6.QtWidgets import QMainWindow, QLabel, QWidget, QVBoxLayout
 from panels.com_panel import ComPanel
 from panels.edit_panel import EditPanel
 from panels.info_panel import InfoPanel
+from panels.range_panel import RangePanel
+from widgets.dialog import Confirm
 
 
 class MainWindow(QMainWindow):
@@ -14,13 +16,15 @@ class MainWindow(QMainWindow):
         self.mainWidget.setFixedSize(windowWidth, windowHeight)
         box = QVBoxLayout()
         versionLabel = QLabel(version, parent=self)
-        self.comPanel = ComPanel()
-        self.infoPanel = InfoPanel()
-        self.editPanel = EditPanel()
+        comPanel = ComPanel()
+        infoPanel = InfoPanel()
+        editPanel = EditPanel()
+        rangePanel = RangePanel()
 
-        box.addWidget(self.comPanel)
-        box.addWidget(self.infoPanel)
-        box.addWidget(self.editPanel)
+        box.addWidget(comPanel)
+        box.addWidget(infoPanel)
+        box.addWidget(editPanel)
+        box.addWidget(rangePanel)
         box.addWidget(versionLabel, stretch=1, alignment=Qt.AlignmentFlag.AlignBottom)
 
         box.addStretch()
@@ -34,8 +38,8 @@ class MainWindow(QMainWindow):
         self.show()
 
     def closeEvent(self, event):
-        # if Confirm("Закрыть программу?").cancel():
-        #     event.ignore()
-        #     return
+        if Confirm("Закрыть программу?").cancel():
+            event.ignore()
+            return
         event.accept()
 

@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QWidget, QGridLayout
 from com.hart import unitDict, HARTconnector
 from misc.types import LineType, MessageType
 from misc.updater import Updater
-from widgets.button import Button
+from widgets.dialog import Confirm
 from widgets.edit_line import EditLine
 from misc import di
 
@@ -22,9 +22,6 @@ class EditPanel(QWidget, Updater):
         self.tagLine = EditLine("Метка (тег): ", LineType.TAG, editLen=8)
         self._4mALine = EditLine("4мА: ", LineType._4mA, editNumeric=True)
         self._20mALine = EditLine("20мА", LineType._20mA, editNumeric=True)
-        pvZeroButton = Button("Обнулить датчик")
-        zeroButton = Button("Установить 4мА")
-        spanButton = Button("Установить 20мА")
 
         self.addWidgets(self.unitLine)
         self.addWidgets(self._4mALine)
@@ -32,12 +29,6 @@ class EditPanel(QWidget, Updater):
         self.column = 0
         self.addWidgets(self.tagLine)
         self.addWidgets(self._20mALine)
-        self.row += 1
-        self.grid.addWidget(pvZeroButton, self.row, 0)
-        self.row += 1
-        self.grid.addWidget(zeroButton, self.row, 0)
-        self.row += 1
-        self.grid.addWidget(spanButton, self.row, 0)
 
         self.setLayout(self.grid)
         self.startUpdate()
@@ -46,11 +37,10 @@ class EditPanel(QWidget, Updater):
         self.tagLine.clicked(self.tagApply)
         self._4mALine.clicked(lambda: self.currentRangeApply(lowerEn=True))
         self._20mALine.clicked(lambda: self.currentRangeApply(upperEn=True))
-        pvZeroButton.clicked.connect(self.setPvZero)
-        zeroButton.clicked.connect(self.setZero)
-        spanButton.clicked.connect(self.setSpan)
 
     def unitApply(self):
+        if Confirm(f"Применить единицы '{self.unitLine.getEditValue()}'?").cancel():
+            return
         try:
             unitStr = unitDict[self.unitLine.getEditValue()]
         except:
@@ -58,13 +48,14 @@ class EditPanel(QWidget, Updater):
         self.com.send(MessageType.WRITE_PV_UNITS, [unitStr])
 
     def tagApply(self):
+        if Confirm(f"Применить тег '{self.tagLine.getEditValue()}'?").cancel():
+            return
         if self.comDict.getValue("descriptorDate") is None:
             return
         try:
             tagStr = self.tagLine.getEditValue().upper()
         except:
             tagStr = "-" * 8
-        tagStr = self.tagLine.getEditValue().upper()
         if len(tagStr) < 8:
             tagStr += " " * (8 - len(tagStr))
         data = bytearray()
@@ -74,8 +65,17 @@ class EditPanel(QWidget, Updater):
         self.com.send(MessageType.WRITE_TAG_DESCRIPTOR_DATE, data)
 
     def currentRangeApply(self, upperEn=False, lowerEn=False):
+        confirmText = "???"
+        if upperEn:
+            confirmText = f"Применить значение '{self._20mALine.getEditValue()}' для 20мА?"
+        elif lowerEn:
+            confirmText = f"Применить значение '{self._4mALine.getEditValue()}' для 4мА?"
+
+        if Confirm(confirmText).cancel():
+            return
         if (self.comDict.getValue("unit") is None) or (self.comDict.getValue("4mA") is None) or (self.comDict.getValue("20mA") is None):
             return
+
         data = bytearray()
         data.append(self.comDict.getValue("unit"))
         try:
@@ -86,15 +86,6 @@ class EditPanel(QWidget, Updater):
         data.extend(bytearray(struct.pack(">f", upperValue)))
         data.extend(bytearray(struct.pack(">f", lowerValue)))
         self.com.send(MessageType.WRITE_RANGE_VALUES, data)
-
-    def setPvZero(self):
-        self.com.send(MessageType.SET_TRIM_PV_ZERO)
-
-    def setZero(self):
-        self.com.send(MessageType.SET_LOWER_RANGE_VALUE)
-
-    def setSpan(self):
-        self.com.send(MessageType.SET_UPPER_RANGE_VALUE)
 
     def addRow(self, line: EditLine):
         self.grid.addWidget(line.getLabelWidget(), self.row, 0)
@@ -123,3 +114,8 @@ class EditPanel(QWidget, Updater):
         self.tagLine.setValue(self.comDict.getValue("tag"))
         self._4mALine.setValue(self.comDict.getValue("4mA"))
         self._20mALine.setValue(self.comDict.getValue("20mA"))
+        if self.com.firstTimeDataReady():
+            self.unitLine.setEditValue(unitStr)
+            self.tagLine.setEditValue(self.comDict.getValue("tag"))
+            self._4mALine.setEditValue(self.comDict.getValue("4mA"))
+            self._20mALine.setEditValue(self.comDict.getValue("20mA"))

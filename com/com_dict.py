@@ -1,7 +1,5 @@
 import threading
 
-from misc.types import MessageType
-
 
 class ComDict(dict):
     def __init__(self):

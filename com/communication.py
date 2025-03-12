@@ -18,19 +18,16 @@ class Com:
         self.thread = None
         self.port = None
         self.cycleIndex = 0
-        self.errorCounter = 0
         self.start = False
         self.status = CommStatus.DISCONNECT
+        self.cycleCommandSeq = []
         self.hartConnector = HARTconnector(0)
-        self.cycleCommandSeq = [(MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE, None),
-                                (MessageType.READ_TAG_DESCRIPTOR_DATE, None),
-                                (MessageType.READ_PRIMARY_VARIABLE, None),
-                                (MessageType.READ_OUTPUT_INFORMATION, None),
-                                ]
+        self.firstScan = False
+        self.dataReaded = False
 
-        #Скорость передачи (1200)
+        #Скорость передачи (=1200)
         self.baudrate = 1200
-        #Четность (Odd)
+        #Четность (=Odd)
         self.parity = "O"
         #Стоповые биты (=1)
         self.stopBits = 1
@@ -38,11 +35,11 @@ class Com:
         self.sendPeriod = 0.1
         #Время возникновения ошибки передачи, если нет ответа, сек
         self.readTimeOut = 1
-        self.maxCountForErrorVis = 20
+        #Время визуализации ошибки связи, сек
+        self.errorVis = 2
 
-        self.errorCounter = self.maxCountForErrorVis
-
-        self.connect("COM6")
+        self.errorVis = int(self.errorVis / self.sendPeriod)
+        self.errorCounter = self.errorVis
 
     def send(self, messageType: MessageType, data=None):
         if self.disconnected():
@@ -70,22 +67,25 @@ class Com:
                 response = self.port.read(length)
 
                 result = self.hartConnector.parseResponse(response, messageType)
-                if result is not None:
-                    self.comDict.setAll(result)
-                else:
+                if result is None:
                     self.status = CommStatus.RECEIVE_ERROR
-                if messageType.value["deleteFlag"]:
-                    del self.cycleCommandSeq[self.cycleIndex]
                 else:
-                    self.cycleIndex += 1
+                    self.comDict.setAll(result)
+                    if messageType.value["deleteFlag"]:
+                        del self.cycleCommandSeq[self.cycleIndex]
+                    else:
+                        self.cycleIndex += 1
                 if self.cycleIndex >= len(self.cycleCommandSeq):
                     self.cycleIndex = 0
+                    self.firstScan = False
 
                 if self.status != CommStatus.CONNECT:
                     self.errorCounter -= 1
                     if self.errorCounter <= 0:
                         self.status = CommStatus.CONNECT
-                        self.errorCounter = self.maxCountForErrorVis
+                        self.errorCounter = self.errorVis
+                else:
+                    self.errorCounter = self.errorVis
 
         except SerialException:
             self.status = CommStatus.LINK_ERROR
@@ -124,6 +124,13 @@ class Com:
         self.status = CommStatus.CONNECT
         if self.connected():
             return
+
+        self.cycleCommandSeq = [(MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE, None),
+                                (MessageType.READ_TAG_DESCRIPTOR_DATE, None),
+                                (MessageType.READ_PRIMARY_VARIABLE, None),
+                                (MessageType.READ_OUTPUT_INFORMATION, None), ]
+        self.firstScan = True
+        self.dataReaded = False
         self.thread = threading.Thread(target=self.runSending, args=(device, ))
         self.thread.daemon = True
         self.start = True
@@ -141,3 +148,9 @@ class Com:
 
     def getStatus(self):
         return self.status.value
+
+    def firstTimeDataReady(self):
+        result = not self.firstScan and not self.dataReaded
+        if not self.firstScan and self.connected():
+            self.dataReaded = True
+        return result

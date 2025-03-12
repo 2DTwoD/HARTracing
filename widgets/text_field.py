@@ -1,5 +1,5 @@
-from PyQt6.QtCore import QLocale, QRegularExpression
-from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
+from PyQt6.QtCore import QRegularExpression
+from PyQt6.QtGui import QRegularExpressionValidator
 from PyQt6.QtWidgets import QLineEdit
 
 from misc.types import Align

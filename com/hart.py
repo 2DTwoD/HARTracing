@@ -123,16 +123,6 @@ class HARTconnector:
         return bytes(message)
 
     @staticmethod
-    def getByteList(data, length):
-        result = []
-        length -= 1
-        mask = 0xFF << (length * 8)
-        for i in range(length, -1, -1):
-            result.append((data & mask) >> (i * 8))
-            mask >>= 8
-        return result
-
-    @staticmethod
     def getCheckSum(data):
         result = 0x00
         for b in data:
@@ -200,5 +190,3 @@ class HARTconnector:
         result.append(((ASCIItoCodeDict[textList[1]] & 0xF) << 4) | (ASCIItoCodeDict[textList[2]] >> 2))
         result.append(((ASCIItoCodeDict[textList[2]] & 0x3) << 6) | ASCIItoCodeDict[textList[3]])
         return result
-
-

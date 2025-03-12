@@ -4,8 +4,12 @@ from misc.types import Align
 from misc.updater import Updater
 from widgets.button import Button
 from widgets.combo import ComboBox
+from widgets.dialog import Confirm
 from widgets.label import Label
 from misc import di
+
+connectStatusColors = ["red", "green"]
+connectButtonColors = ["gray", "#F0F0F0"]
 
 
 class ComPanel(QWidget, Updater):
@@ -29,12 +33,22 @@ class ComPanel(QWidget, Updater):
         grid.addWidget(self.status, 0, 4)
 
         self.connect.clicked.connect(self.connectClick)
+        self.disconnect.clicked.connect(self.disconnectClick)
 
         self.setLayout(grid)
         self.startUpdate()
 
     def updateAction(self):
-        pass
+        self.status.setText(self.com.getStatus())
+        self.status.setBackground(connectStatusColors[self.com.connected()])
+        self.connect.setBackground(connectButtonColors[self.com.disconnected()])
+        self.disconnect.setBackground(connectButtonColors[self.com.connected()])
 
     def connectClick(self):
         self.com.connect(self.combo.currentText())
+
+    def disconnectClick(self):
+        if self.com.connected():
+            if Confirm("Отключиться от HART-модема?").cancel():
+                return
+        self.com.disconnect()
