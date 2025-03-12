@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
 
+from com.hart import MessageType
 from misc import di
-from misc.types import MessageType
 from widgets.button import Button
 from widgets.dialog import Confirm
 

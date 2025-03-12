@@ -4,7 +4,7 @@ from PyQt6.QtCore import QTimer
 class Updater:
 
     def __init__(self):
-        #Период обновления объектов, мсек
+        # Период обновления объектов, мсек
         interval = 500
         self.timer = QTimer()
         self.timer.setInterval(interval)

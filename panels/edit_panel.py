@@ -2,8 +2,9 @@ import struct
 
 from PyQt6.QtWidgets import QWidget, QGridLayout
 
-from com.hart import unitDict, HARTconnector
-from misc.types import LineType, MessageType
+from com.communication import CommStatus
+from com.hart import unitDict, HARTconnector, MessageType
+from misc.types import LineType
 from misc.updater import Updater
 from widgets.dialog import Confirm
 from widgets.edit_line import EditLine
@@ -13,30 +14,30 @@ from misc import di
 class EditPanel(QWidget, Updater):
     def __init__(self):
         super().__init__()
-        self.comDict = di.Container.comDict()
         self.com = di.Container.com()
+        self.comDict = di.Container.comDict()
         self.grid = QGridLayout()
         self.row = 0
         self.column = 0
         self.unitLine = EditLine("Единица измерения: ", LineType.UNIT, editValue=unitDict.keys())
         self.tagLine = EditLine("Метка (тег): ", LineType.TAG, editLen=8)
-        self._4mALine = EditLine("4мА: ", LineType._4mA, editNumeric=True)
-        self._20mALine = EditLine("20мА", LineType._20mA, editNumeric=True)
+        self.mA4Line = EditLine("4мА: ", LineType.mA4, editNumeric=True)
+        self.mA20Line = EditLine("20мА", LineType.mA20, editNumeric=True)
 
         self.addWidgets(self.unitLine)
-        self.addWidgets(self._4mALine)
+        self.addWidgets(self.mA4Line)
         self.row += 1
         self.column = 0
         self.addWidgets(self.tagLine)
-        self.addWidgets(self._20mALine)
+        self.addWidgets(self.mA20Line)
 
         self.setLayout(self.grid)
         self.startUpdate()
 
         self.unitLine.clicked(self.unitApply)
         self.tagLine.clicked(self.tagApply)
-        self._4mALine.clicked(lambda: self.currentRangeApply(lowerEn=True))
-        self._20mALine.clicked(lambda: self.currentRangeApply(upperEn=True))
+        self.mA4Line.clicked(lambda: self.currentRangeApply(lowerEn=True))
+        self.mA20Line.clicked(lambda: self.currentRangeApply(upperEn=True))
 
     def unitApply(self):
         if Confirm(f"Применить единицы '{self.unitLine.getEditValue()}'?").cancel():
@@ -67,9 +68,9 @@ class EditPanel(QWidget, Updater):
     def currentRangeApply(self, upperEn=False, lowerEn=False):
         confirmText = "???"
         if upperEn:
-            confirmText = f"Применить значение '{self._20mALine.getEditValue()}' для 20мА?"
+            confirmText = f"Применить значение '{self.mA20Line.getEditValue()}' для 20мА?"
         elif lowerEn:
-            confirmText = f"Применить значение '{self._4mALine.getEditValue()}' для 4мА?"
+            confirmText = f"Применить значение '{self.mA4Line.getEditValue()}' для 4мА?"
 
         if Confirm(confirmText).cancel():
             return
@@ -79,8 +80,8 @@ class EditPanel(QWidget, Updater):
         data = bytearray()
         data.append(self.comDict.getValue("unit"))
         try:
-            lowerValue = float(self._4mALine.getEditValue()) if lowerEn else self.comDict.getValue("4mA")
-            upperValue = float(self._20mALine.getEditValue()) if upperEn else self.comDict.getValue("20mA")
+            lowerValue = float(self.mA4Line.getEditValue()) if lowerEn else self.comDict.getValue("4mA")
+            upperValue = float(self.mA20Line.getEditValue()) if upperEn else self.comDict.getValue("20mA")
         except:
             return
         data.extend(bytearray(struct.pack(">f", upperValue)))
@@ -105,17 +106,18 @@ class EditPanel(QWidget, Updater):
         self.column += 1
 
     def updateAction(self):
+        comError = self.com.status != CommStatus.CONNECT
         unitStr = "Не определен"
         for key, val in unitDict.items():
             if val == self.comDict.getValue("unit"):
                 unitStr = key
                 break
-        self.unitLine.setValue(unitStr)
-        self.tagLine.setValue(self.comDict.getValue("tag"))
-        self._4mALine.setValue(self.comDict.getValue("4mA"))
-        self._20mALine.setValue(self.comDict.getValue("20mA"))
+        self.unitLine.setValue(unitStr, errorStatus=comError)
+        self.tagLine.setValue(self.comDict.getValue("tag"), errorStatus=comError)
+        self.mA4Line.setValue(self.comDict.getValue("4mA"), errorStatus=comError)
+        self.mA20Line.setValue(self.comDict.getValue("20mA"), errorStatus=comError)
         if self.com.firstTimeDataReady():
             self.unitLine.setEditValue(unitStr)
             self.tagLine.setEditValue(self.comDict.getValue("tag"))
-            self._4mALine.setEditValue(self.comDict.getValue("4mA"))
-            self._20mALine.setEditValue(self.comDict.getValue("20mA"))
+            self.mA4Line.setEditValue(self.comDict.getValue("4mA"))
+            self.mA20Line.setEditValue(self.comDict.getValue("20mA"))

@@ -90,4 +90,3 @@ class BorderStyle:
         styles["border-width"] = f"{self.borderWidth}px"
         styles["border-color"] = self.borderColor
         self.widget.setStyleSheet(getStyleSheetFromDict(styles))
-

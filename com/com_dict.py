@@ -10,8 +10,8 @@ class ComDict(dict):
         self.__setitem__("percent", 0x00)
         self.__setitem__("sensorStatus",  True)
         self.__setitem__("hartStatus", True)
-        self.__setitem__("unit", "XXX")
-        self.__setitem__("tag", "XXXXXXXX")
+        self.__setitem__("unit", 252)
+        self.__setitem__("tag", "--------")
         self.__setitem__("descriptorDate", None)
         self.__setitem__("4mA", 0x00)
         self.__setitem__("20mA", 0x00)
@@ -36,5 +36,3 @@ class ComDict(dict):
             if str(key) in self.keys():
                 return self[key]
             return None
-
-

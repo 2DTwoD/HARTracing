@@ -6,14 +6,17 @@ from panels.edit_panel import EditPanel
 from panels.info_panel import InfoPanel
 from panels.range_panel import RangePanel
 from widgets.dialog import Confirm
+from misc import di
 
 
 class MainWindow(QMainWindow):
     def __init__(self, version="v0.0.0", windowWidth=100, windowHeight=100, windowLabel="App"):
         super().__init__()
+        self.com = di.Container.com()
 
         self.mainWidget = QWidget(parent=self)
         self.mainWidget.setFixedSize(windowWidth, windowHeight)
+
         box = QVBoxLayout()
         versionLabel = QLabel(version, parent=self)
         comPanel = ComPanel()
@@ -33,7 +36,6 @@ class MainWindow(QMainWindow):
         self.setFixedSize(windowWidth, windowHeight)
         self.mainWidget.setLayout(box)
 
-
     def init(self):
         self.show()
 
@@ -41,5 +43,5 @@ class MainWindow(QMainWindow):
         if Confirm("Закрыть программу?").cancel():
             event.ignore()
             return
+        self.com.disconnect()
         event.accept()
-

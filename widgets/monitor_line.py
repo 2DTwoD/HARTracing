@@ -1,7 +1,8 @@
 from misc.types import Align
 from widgets.label import Label
 
-valueUpdateColorList = ["lightgray", "blue"]
+valueUpdateColorList = ["lightgray", "blue", "red"]
+
 
 class MonitorLine(list):
     def __init__(self, labelText, color="black", background="white"):
@@ -17,12 +18,16 @@ class MonitorLine(list):
     def getValueWidget(self):
         return self[1]
 
-    def setValue(self, value):
+    def setValue(self, value, errorStatus=False):
         newVal = str(value)
         condition = newVal != self.value.text()
         if condition:
             self.value.setText(newVal)
-        self.value.setBorderColor(valueUpdateColorList[int(condition)])
+
+        if errorStatus:
+            self.value.setBorderColor(valueUpdateColorList[-1])
+        else:
+            self.value.setBorderColor(valueUpdateColorList[int(condition)])
 
     def setValueColor(self, color: str):
         self.value.setColor(color)

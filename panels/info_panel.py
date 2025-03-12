@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QGridLayout
 
+from com.communication import CommStatus
 from misc.updater import Updater
 from widgets.monitor_line import MonitorLine
 from misc import di
@@ -11,6 +12,7 @@ statusTextList = ["Норм.", "Ошибка"]
 class InfoPanel(QWidget, Updater):
     def __init__(self):
         super().__init__()
+        self.com = di.Container.com()
         self.comDict = di.Container.comDict()
         grid = QGridLayout()
 
@@ -43,13 +45,14 @@ class InfoPanel(QWidget, Updater):
         self.startUpdate()
 
     def updateAction(self):
-        self.sensorStatusMonitor.setValue(statusTextList[int(self.comDict.get("sensorStatus"))])
+        comError = self.com.status != CommStatus.CONNECT
+        self.sensorStatusMonitor.setValue(statusTextList[int(self.comDict.get("sensorStatus"))], errorStatus=comError)
         self.sensorStatusMonitor.setValueBackground(statusColorList[int(self.comDict.get("sensorStatus"))])
-        self.hartStatusMonitor.setValue(statusTextList[int(self.comDict.get("hartStatus"))])
+        self.hartStatusMonitor.setValue(statusTextList[int(self.comDict.get("hartStatus"))], errorStatus=comError)
         self.hartStatusMonitor.setValueBackground(statusColorList[int(self.comDict.get("hartStatus"))])
-        self.measureMonitor.setValue(self.comDict.get("measure"))
-        self.currentMonitor.setValue(self.comDict.get("current"))
-        self.percentMonitor.setValue(self.comDict.get("percent"))
+        self.measureMonitor.setValue(self.comDict.get("measure"), errorStatus=comError)
+        self.currentMonitor.setValue(self.comDict.get("current"), errorStatus=comError)
+        self.percentMonitor.setValue(self.comDict.get("percent"), errorStatus=comError)
         lowerLim = self.comDict.get("4mA")
         calcValue = lowerLim + (self.comDict.get("20mA") - lowerLim) * self.comDict.get("percent") / 100.0
-        self.calcMonitor.setValue(round(calcValue, 2))
+        self.calcMonitor.setValue(round(calcValue, 2), errorStatus=comError)

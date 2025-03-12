@@ -24,13 +24,13 @@ class EditLine(MonitorLine):
         self.append(self.applyButton)
 
     def getEditValue(self):
-        if type(self.editField) == ComboBox:
+        if type(self.editField) is ComboBox:
             return self.editField.currentText()
         else:
             return self.editField.text()
 
     def setEditValue(self, value):
-        if type(self.editField) == ComboBox:
+        if type(self.editField) is ComboBox:
             index = self.editField.findText(str(value))
             if index != -1:
                 self.editField.setCurrentIndex(index)

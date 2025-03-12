@@ -1,6 +1,5 @@
 import struct
-
-from misc.types import MessageType
+from enum import Enum
 
 codeToASCIIstr = r"""@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_ !"#$%&'()*+,-./0123456789:;<=>?"""
 
@@ -24,14 +23,14 @@ ASCIItoCodeDict = {
 }
 
 unitDict = {
-    # Tempareture:
+    # Temperature:
     "°C": 32, "°F": 33, "°R": 34, "K": 35,
-    #Pressure:
+    # Pressure:
     "inH2O": 1, "inHg": 2, "ftH2O": 3, "mmH2O": 4, "mmHg": 5,
     "psi": 6, "bar": 7, "mbar": 8, "g/cm2": 9, "kg/cm2": 10,
     "Pa": 11, "kPa": 12, "Torr": 13, "atm": 14, "inH20(60 °F)": 145,
     "MPa": 237, "inH2O (4 °C)": 238, "mmH2O (4 °C)": 239,
-    #Volumetric flow:
+    # Volumetric flow:
     "ft3/min": 15, "gal/min": 16, "l/min": 17, "gal (UK)/min": 18,
     "m3/h": 19, "gal/s": 22, "Mgal/d": 23, "l/s": 24, "Ml/d": 25,
     "ft3/s": 26, "ft3/d": 27, "m3/s": 28, "m3/d": 29, "gal (UK)/h": 30,
@@ -39,55 +38,69 @@ unitDict = {
     "ft3/h": 130, "m3/min": 131, "bbl/sec": 132, "bbl/min": 133,
     "bbl/h": 134, "bbl/d": 135, "gal/h": 136, "gal (UK)/s": 137,
     "l/h": 138, "gal/d": 235,
-    #Velocity:
+    # Velocity:
     "ft/s": 20, "m/s": 21, "in/s": 114, "in/min": 115, "ft/min": 116,
     "m/h": 120,
-    #Volume:
+    # Volume:
     "gal": 40, "l": 41, "gal (UK)": 42, "m3": 43, "bbl": 46, "bu": 110,
     "yd3": 111, "ft3": 112, "in3": 113, "bbl (US)": 124, "Nm3": 166,
     "Nl": 167, "SCF": 168, "hl": 236,
-    #Length:
-    "ft": 44, "m": 45, "in":47, "cm": 48, "mm": 49, "ft-16": 151,
-    #Time:
+    # Length:
+    "ft": 44, "m": 45, "in": 47, "cm": 48, "mm": 49, "ft-16": 151,
+    # Time:
     "min": 50, "s": 51, "h": 52, "d": 53,
-    #Mass:
-    "g": 60, "kg": 61, "t": 62, "lb":63, "ton": 64, "ton (UK)": 65,
+    # Mass:
+    "g": 60, "kg": 61, "t": 62, "lb": 63, "ton": 64, "ton (UK)": 65,
     "oz": 125,
-    #Mass Flow:
+    # Mass Flow:
     "g/s": 70, "g/min": 71, "g/h": 72, "kg/s": 73, "kg/m": 74, "kg/h": 75,
     "kg/d": 76, "t/min": 77, "t/h": 78, "t/d": 79, "lb/s": 80, "lb/min": 81,
     "lb/h": 82, "lb/d": 83, "ton/min": 84, "tom/h": 85, "ton/d": 86,
     "ton (UK)/h": 87, "ton (UK)/d": 88,
-    #Mass per Volume:
+    # Mass per Volume:
     "SG": 90, "g/cm3": 91, "kg/m3": 92, "lb/gal": 93, "lb/ft3": 94,
     "g/ml": 95, "kg/l": 96, "g/l": 97, "lb/in3": 98, "ton/yd3": 99,
     "°Tw": 100, "B°": 102, "B° (light)": 103, "Degrees API": 104,
     "μg/l": 146, "μg/m3": 147,
-    #Viscosity:
+    # Viscosity:
     "cSt": 54, "cP": 55,
-    #Electromagnetic Unit Of Electrical Potential:
+    # Electromagnetic Unit Of Electrical Potential:
     "mV": 36, "V": 58,
-    #Electrostatic Unit Of Current:
+    # Electrostatic Unit Of Current:
     "mA": 39,
-    #Electromagnetic Unit Of Resistance:
+    # Electromagnetic Unit Of Resistance:
     "Ω": 37, "kΩ": 163,
-    #Energy:
+    # Energy:
     "J": 69, "DTH": 89, "ft*lbf": 126, "kWh": 128, "Mcal (th)": 162,
     "MJ": 164, "Btu": 165,
-    #Power:
+    # Power:
     "kW": 127, "hp": 129, "Mcal (th)/h": 140, "MJ/h": 141, "Btu/h": 142,
-    #Radial Velocity:
+    # Radial Velocity:
     "°/s": 117, "rps": 118, "rpm": 119,
-    #Miscellanious:
+    # Miscellanious:
     "Hz": 38, "%": 57, "pH": 59, "°Bx": 101, "%w": 105, "%v": 106,
     "°Bg": 107, "proof/vol": 108, "proof/mass": 109, "ppm": 139,
     "%c": 148, "%q": 150, "ft3/lb": 152, "pF": 153, "ml/l": 154,
     "dB": 156, "°P": 160, "%LEL": 161, "ppb": 169,
-    #Unknown
+    # Unknown
     "unknown": 252
 }
 
 messageLenWithoutData = 16
+
+
+class MessageType(Enum):
+    READ_UNIQUE_IDENTIFIER = {"commandNumber": 0, "dataLen": 12, "deleteFlag": True}
+    READ_PRIMARY_VARIABLE = {"commandNumber": 1, "dataLen": 5, "deleteFlag": False}
+    READ_CURRENT_AND_PERCENT_OF_RANGE = {"commandNumber": 2, "dataLen": 8, "deleteFlag": False}
+    READ_TAG_DESCRIPTOR_DATE = {"commandNumber": 13, "dataLen": 21, "deleteFlag": True}
+    READ_OUTPUT_INFORMATION = {"commandNumber": 15, "dataLen": 17, "deleteFlag": True}
+    WRITE_TAG_DESCRIPTOR_DATE = {"commandNumber": 18, "dataLen": 21, "deleteFlag": True}
+    WRITE_RANGE_VALUES = {"commandNumber": 35, "dataLen": 9, "deleteFlag": True}
+    SET_UPPER_RANGE_VALUE = {"commandNumber": 36, "dataLen": 0, "deleteFlag": True}
+    SET_LOWER_RANGE_VALUE = {"commandNumber": 37, "dataLen": 0, "deleteFlag": True}
+    SET_TRIM_PV_ZERO = {"commandNumber": 43, "dataLen": 0, "deleteFlag": True}
+    WRITE_PV_UNITS = {"commandNumber": 44, "dataLen": 1, "deleteFlag": True}
 
 
 class HARTconnector:
@@ -108,7 +121,7 @@ class HARTconnector:
         message.append(0x82)
         # address (1)
         message.append(0x80 | self.address)
-        #Expansion (4 bytes)
+        # expansion (4 bytes)
         for _ in range(4):
             message.append(0)
         # command (1 byte)

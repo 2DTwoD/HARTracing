@@ -1,15 +1,23 @@
 import threading
 import time
+from enum import Enum
 
 from serial.serialutil import SerialException
 
-from com.hart import HARTconnector
+from com.hart import HARTconnector, MessageType
 
 import serial.tools.list_ports
 import serial
 
-from misc.types import CommStatus, MessageType
 from misc import di
+
+
+class CommStatus(Enum):
+    CONNECT = "V"
+    DISCONNECT = "X"
+    LINK_ERROR = "Ошибка связи"
+    RECEIVE_ERROR = "Ошибка передачи"
+
 
 class Com:
     def __init__(self):
@@ -17,6 +25,7 @@ class Com:
         self.comDict = di.Container.comDict()
         self.thread = None
         self.port = None
+        self.lock = threading.Lock()
         self.cycleIndex = 0
         self.start = False
         self.status = CommStatus.DISCONNECT
@@ -25,18 +34,18 @@ class Com:
         self.firstScan = False
         self.dataReaded = False
 
-        #Скорость передачи (=1200)
+#       Скорость передачи (=1200)
         self.baudrate = 1200
-        #Четность (=Odd)
+#       Четность (=Odd)
         self.parity = "O"
-        #Стоповые биты (=1)
+#       Стоповые биты (=1)
         self.stopBits = 1
-        # Период обмена, сек
+#       Период обмена, сек
         self.sendPeriod = 0.1
-        #Время возникновения ошибки передачи, если нет ответа, сек
+#       Время возникновения ошибки передачи, если нет ответа, сек
         self.readTimeOut = 1
-        #Время визуализации ошибки связи, сек
-        self.errorVis = 2
+#       Время визуализации ошибки связи, сек
+        self.errorVis = 1
 
         self.errorVis = int(self.errorVis / self.sendPeriod)
         self.errorCounter = self.errorVis
@@ -44,11 +53,12 @@ class Com:
     def send(self, messageType: MessageType, data=None):
         if self.disconnected():
             return
-        self.cycleCommandSeq.append((messageType, data))
-        if messageType == MessageType.WRITE_TAG_DESCRIPTOR_DATE:
-            self.cycleCommandSeq.append((MessageType.READ_TAG_DESCRIPTOR_DATE, None))
-        else:
-            self.cycleCommandSeq.append((MessageType.READ_OUTPUT_INFORMATION, None))
+        with self.lock:
+            self.cycleCommandSeq.append((messageType, data))
+            if messageType == MessageType.WRITE_TAG_DESCRIPTOR_DATE:
+                self.cycleCommandSeq.append((MessageType.READ_TAG_DESCRIPTOR_DATE, None))
+            else:
+                self.cycleCommandSeq.append((MessageType.READ_OUTPUT_INFORMATION, None))
 
     def runSending(self, device: str):
         try:
@@ -59,8 +69,8 @@ class Com:
                 time.sleep(self.sendPeriod)
                 self.port.reset_input_buffer()
                 self.port.reset_output_buffer()
-
-                messageType, data = self.cycleCommandSeq[self.cycleIndex]
+                with self.lock:
+                    messageType, data = self.cycleCommandSeq[self.cycleIndex]
                 command, length = self.hartConnector.getCommandAndLength(messageType, data=data)
 
                 self.port.write(command)
@@ -72,7 +82,8 @@ class Com:
                 else:
                     self.comDict.setAll(result)
                     if messageType.value["deleteFlag"]:
-                        del self.cycleCommandSeq[self.cycleIndex]
+                        with self.lock:
+                            del self.cycleCommandSeq[self.cycleIndex]
                     else:
                         self.cycleIndex += 1
                 if self.cycleIndex >= len(self.cycleCommandSeq):
@@ -94,23 +105,6 @@ class Com:
         finally:
             if self.port is not None:
                 self.port.close()
-
-    def checkResponse(self, read, startChar, endChar, content=None):
-        try:
-            start = read.index(startChar)
-            end = read.index(endChar)
-
-            if start == -1 or end == -1:
-                return True, None
-
-            subString = read[start: end +1]
-
-            if content is not None and subString != content:
-                return True, None
-
-            return False, subString
-        except:
-            return True, None
 
     @staticmethod
     def getAvailablePorts():
