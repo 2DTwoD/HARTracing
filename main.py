@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QApplication
 
 from panels.main_window import MainWindow
 
-version = "v1.1.0"
+version = "v1.1.1"
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

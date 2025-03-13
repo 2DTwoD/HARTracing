@@ -77,6 +77,18 @@ class ComPanel(QWidget, Updater):
         self.baudCombo.setEnabled(self.com.disconnected())
         self.parityCombo.setEnabled(self.com.disconnected())
         self.bitCombo.setEnabled(self.com.disconnected())
+        self.updateAvailablePorts()
+
+    def updateAvailablePorts(self):
+        if self.com.connected():
+            return
+        ports = self.com.getAvailablePorts()
+        ports.sort()
+        allItems = [self.portCombo.itemText(i) for i in range(self.portCombo.count())]
+        if ports == allItems:
+            return
+        self.portCombo.clear()
+        self.portCombo.addItems(ports)
 
     def connectClick(self):
         self.com.connect(self.portCombo.currentText(),

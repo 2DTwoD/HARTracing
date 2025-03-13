@@ -30,7 +30,7 @@ class Com:
         self.start = False
         self.status = CommStatus.DISCONNECT
         self.cycleCommandSeq = []
-        self.hartConnector = HARTconnector(0)
+        self.hartConnector = HARTconnector()
         self.firstScan = False
         self.dataReaded = False
 

@@ -87,7 +87,12 @@ unitDict = {
 }
 
 preambleLen = 5
-messageLenWithoutPreambleAndData = 11 + preambleLen
+messageLenWithoutPreambleAndData = 7 + preambleLen
+
+
+class FrameType(Enum):
+    SHORT = 0x02
+    LONG = 0x82
 
 
 class DeleteFlag(Enum):
@@ -111,8 +116,9 @@ class MessageType(Enum):
 
 
 class HARTconnector:
-    def __init__(self, address):
+    def __init__(self, address=0, frame=FrameType.LONG):
         self.address = address
+        self.frame = frame
 
     def changeAddress(self, address):
         self.address = address
@@ -125,12 +131,13 @@ class HARTconnector:
         for _ in range(preambleLen):
             message.append(0xFF)
         # startByte (1 byte)
-        message.append(0x82)
+        message.append(self.frame.value)
         # address (1)
         message.append(0x80 | self.address)
-        # expansion (4 bytes)
-        for _ in range(4):
-            message.append(0)
+        if self.frame == FrameType.LONG:
+            # expansion (4 bytes)
+            for _ in range(4):
+                message.append(0)
         # command (1 byte)
         message.append(command)
         # count (1 byte)
@@ -142,28 +149,23 @@ class HARTconnector:
         message.append(self.getCheckSum(message[5:]))
         return bytes(message)
 
-    @staticmethod
-    def getCheckSum(data):
-        result = 0x00
-        for b in data:
-            result ^= b
-        return result
-
     def getCommandAndLength(self, messageType: MessageType, data=None):
         message = self.getRequestMessage(messageType.value["commandNumber"], data=data)
         return message, len(message) + messageType.value["dataLen"] + 2
 
-    @staticmethod
-    def parseResponse(response: bytes, messageType: MessageType):
+    def parseResponse(self, response: bytes, messageType: MessageType):
         try:
             receivedCheckSum = response[-1]
             calculatedCheckSum = HARTconnector.getCheckSum(response[5:-1])
+
             if receivedCheckSum != calculatedCheckSum:
-                # raise Exception("Wrong check sum")
-                pass
-            if len(response) != messageLenWithoutPreambleAndData + messageType.value["dataLen"]:
-                # raise Exception("Wrong data length")
-                pass
+                raise Exception("Wrong check sum")
+
+            messageLength = (messageLenWithoutPreambleAndData + messageType.value["dataLen"]
+                             + (0 if self.frame == FrameType.SHORT else 4))
+            if len(response) != messageLength:
+                raise Exception("Wrong data length")
+
             status = response[13:15]
             result = {"sensorStatus": (status[1] >> 7) > 0, "hartStatus": (status[0] & 0x7F) > 0}
             data = response[15: 15 + messageType.value["dataLen"]]
@@ -182,6 +184,21 @@ class HARTconnector:
             return result
         except:
             return None
+
+    @staticmethod
+    def getCheckSum(data):
+        result = 0x00
+        for b in data:
+            result ^= b
+        return result
+
+    @staticmethod
+    def getLongitudinalRedundancyCheck(data):
+        result = 0x00
+        for b in data:
+            result = (result + b) & 0xFF
+        result = (((result ^ 0xFF) + 1) & 0xFF)
+        return result
 
     @staticmethod
     def getASCIIstr(data: bytes):
