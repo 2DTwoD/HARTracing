@@ -116,6 +116,10 @@ class EditPanel(QWidget, Updater):
         self.tagLine.setValue(self.comDict.getValue("tag"), errorStatus=comError)
         self.mA4Line.setValue(self.comDict.getValue("4mA"), errorStatus=comError)
         self.mA20Line.setValue(self.comDict.getValue("20mA"), errorStatus=comError)
+        self.unitLine.checkDifference()
+        self.tagLine.checkDifference()
+        self.mA4Line.checkDifference()
+        self.mA20Line.checkDifference()
         if self.com.firstTimeDataReady():
             self.unitLine.setEditValue(unitStr)
             self.tagLine.setEditValue(self.comDict.getValue("tag"))

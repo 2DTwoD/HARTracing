@@ -4,6 +4,7 @@ from widgets.combo import ComboBox
 from widgets.monitor_line import MonitorLine
 from widgets.text_field import TextField
 
+differenceColorList = ["white", "yellow"]
 
 class EditLine(MonitorLine):
     def __init__(self, labelText, lineType: LineType, color="black", background="white", editValue=None, editLen=None,
@@ -36,6 +37,12 @@ class EditLine(MonitorLine):
                 self.editField.setCurrentIndex(index)
         else:
             self.editField.setText(str(value))
+
+    def checkDifference(self):
+        if self.getEditValue() != self.getValue():
+            self.editField.setBackground(differenceColorList[1])
+        else:
+            self.editField.setBackground(differenceColorList[0])
 
     def getEditWidget(self):
         return self[2]

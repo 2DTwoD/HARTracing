@@ -4,7 +4,7 @@ from enum import Enum
 
 from serial.serialutil import SerialException
 
-from com.hart import HARTconnector, MessageType
+from com.hart import HARTconnector, MessageType, DeleteFlag
 
 import serial.tools.list_ports
 import serial
@@ -15,8 +15,8 @@ from misc import di
 class CommStatus(Enum):
     CONNECT = "V"
     DISCONNECT = "X"
-    LINK_ERROR = "Ошибка связи"
-    RECEIVE_ERROR = "Ошибка передачи"
+    LINK_ERROR = "Ош. связи"
+    RECEIVE_ERROR = "Ош. передачи"
 
 
 class Com:
@@ -34,14 +34,16 @@ class Com:
         self.firstScan = False
         self.dataReaded = False
 
-#       Скорость передачи (=1200)
+        # Имя порта (=COM?)
+        self.device = "COM1"
+        # Скорость передачи (=1200)
         self.baudrate = 1200
-#       Четность (=Odd)
+        # Четность (=Odd)
         self.parity = "O"
-#       Стоповые биты (=1)
-        self.stopBits = 1
+        # Стоповые биты (=2)
+        self.stopBits = 2
 #       Период обмена, сек
-        self.sendPeriod = 0.1
+        self.sendPeriod = 0.4
 #       Время возникновения ошибки передачи, если нет ответа, сек
         self.readTimeOut = 1
 #       Время визуализации ошибки связи, сек
@@ -60,9 +62,9 @@ class Com:
             else:
                 self.cycleCommandSeq.append((MessageType.READ_OUTPUT_INFORMATION, None))
 
-    def runSending(self, device: str):
+    def runSending(self):
         try:
-            self.port = serial.Serial(device, baudrate=self.baudrate, parity=self.parity, stopbits=self.stopBits)
+            self.port = serial.Serial(self.device, baudrate=self.baudrate, parity=self.parity, stopbits=self.stopBits)
             self.port.timeout = self.readTimeOut
 
             while self.start:
@@ -79,13 +81,15 @@ class Com:
                 result = self.hartConnector.parseResponse(response, messageType)
                 if result is None:
                     self.status = CommStatus.RECEIVE_ERROR
+                    if messageType.value["deleteFlag"] == DeleteFlag.ONCE:
+                        self.deleteItem()
                 else:
                     self.comDict.setAll(result)
-                    if messageType.value["deleteFlag"]:
-                        with self.lock:
-                            del self.cycleCommandSeq[self.cycleIndex]
+                    if messageType.value["deleteFlag"] != DeleteFlag.NEVER:
+                        self.deleteItem()
                     else:
                         self.cycleIndex += 1
+
                 if self.cycleIndex >= len(self.cycleCommandSeq):
                     self.cycleIndex = 0
                     self.firstScan = False
@@ -93,7 +97,8 @@ class Com:
                 if self.status != CommStatus.CONNECT:
                     self.errorCounter -= 1
                     if self.errorCounter <= 0:
-                        self.status = CommStatus.CONNECT
+                        if result is not None:
+                            self.status = CommStatus.CONNECT
                         self.errorCounter = self.errorVis
                 else:
                     self.errorCounter = self.errorVis
@@ -106,6 +111,10 @@ class Com:
             if self.port is not None:
                 self.port.close()
 
+    def deleteItem(self):
+        with self.lock:
+            del self.cycleCommandSeq[self.cycleIndex]
+
     @staticmethod
     def getAvailablePorts():
         result = []
@@ -114,10 +123,15 @@ class Com:
             result.append(port.device)
         return result
 
-    def connect(self, device: str):
+    def connect(self, device: str, baudrate=1200, parity="O", stopBits=1):
         self.status = CommStatus.CONNECT
         if self.connected():
             return
+
+        self.device = device
+        self.baudrate = baudrate
+        self.parity = parity
+        self.stopBits = stopBits
 
         self.cycleCommandSeq = [(MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE, None),
                                 (MessageType.READ_TAG_DESCRIPTOR_DATE, None),
@@ -125,7 +139,7 @@ class Com:
                                 (MessageType.READ_OUTPUT_INFORMATION, None), ]
         self.firstScan = True
         self.dataReaded = False
-        self.thread = threading.Thread(target=self.runSending, args=(device, ))
+        self.thread = threading.Thread(target=self.runSending)
         self.thread.daemon = True
         self.start = True
         self.thread.start()
@@ -148,3 +162,4 @@ class Com:
         if not self.firstScan and self.connected():
             self.dataReaded = True
         return result
+

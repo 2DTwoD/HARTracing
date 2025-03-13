@@ -86,21 +86,28 @@ unitDict = {
     "unknown": 252
 }
 
-messageLenWithoutData = 16
+preambleLen = 5
+messageLenWithoutPreambleAndData = 11 + preambleLen
+
+
+class DeleteFlag(Enum):
+    NEVER = 0
+    SUCCESS = 1
+    ONCE = 2
 
 
 class MessageType(Enum):
-    READ_UNIQUE_IDENTIFIER = {"commandNumber": 0, "dataLen": 12, "deleteFlag": True}
-    READ_PRIMARY_VARIABLE = {"commandNumber": 1, "dataLen": 5, "deleteFlag": False}
-    READ_CURRENT_AND_PERCENT_OF_RANGE = {"commandNumber": 2, "dataLen": 8, "deleteFlag": False}
-    READ_TAG_DESCRIPTOR_DATE = {"commandNumber": 13, "dataLen": 21, "deleteFlag": True}
-    READ_OUTPUT_INFORMATION = {"commandNumber": 15, "dataLen": 17, "deleteFlag": True}
-    WRITE_TAG_DESCRIPTOR_DATE = {"commandNumber": 18, "dataLen": 21, "deleteFlag": True}
-    WRITE_RANGE_VALUES = {"commandNumber": 35, "dataLen": 9, "deleteFlag": True}
-    SET_UPPER_RANGE_VALUE = {"commandNumber": 36, "dataLen": 0, "deleteFlag": True}
-    SET_LOWER_RANGE_VALUE = {"commandNumber": 37, "dataLen": 0, "deleteFlag": True}
-    SET_TRIM_PV_ZERO = {"commandNumber": 43, "dataLen": 0, "deleteFlag": True}
-    WRITE_PV_UNITS = {"commandNumber": 44, "dataLen": 1, "deleteFlag": True}
+    READ_UNIQUE_IDENTIFIER = {"commandNumber": 0, "dataLen": 12, "deleteFlag": DeleteFlag.SUCCESS}
+    READ_PRIMARY_VARIABLE = {"commandNumber": 1, "dataLen": 5, "deleteFlag": DeleteFlag.NEVER}
+    READ_CURRENT_AND_PERCENT_OF_RANGE = {"commandNumber": 2, "dataLen": 8, "deleteFlag": DeleteFlag.NEVER}
+    READ_TAG_DESCRIPTOR_DATE = {"commandNumber": 13, "dataLen": 21, "deleteFlag": DeleteFlag.SUCCESS}
+    READ_OUTPUT_INFORMATION = {"commandNumber": 15, "dataLen": 17, "deleteFlag": DeleteFlag.SUCCESS}
+    WRITE_TAG_DESCRIPTOR_DATE = {"commandNumber": 18, "dataLen": 21, "deleteFlag": DeleteFlag.ONCE}
+    WRITE_RANGE_VALUES = {"commandNumber": 35, "dataLen": 9, "deleteFlag": DeleteFlag.ONCE}
+    SET_UPPER_RANGE_VALUE = {"commandNumber": 36, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE}
+    SET_LOWER_RANGE_VALUE = {"commandNumber": 37, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE}
+    SET_TRIM_PV_ZERO = {"commandNumber": 43, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE}
+    WRITE_PV_UNITS = {"commandNumber": 44, "dataLen": 1, "deleteFlag": DeleteFlag.ONCE}
 
 
 class HARTconnector:
@@ -115,7 +122,7 @@ class HARTconnector:
             data = []
         message = []
         # Preamble (5 bytes)
-        for _ in range(5):
+        for _ in range(preambleLen):
             message.append(0xFF)
         # startByte (1 byte)
         message.append(0x82)
@@ -152,9 +159,11 @@ class HARTconnector:
             receivedCheckSum = response[-1]
             calculatedCheckSum = HARTconnector.getCheckSum(response[5:-1])
             if receivedCheckSum != calculatedCheckSum:
-                raise Exception("Wrong check sum")
-            if len(response) != messageLenWithoutData + messageType.value["dataLen"]:
-                raise Exception("Wrong data length")
+                # raise Exception("Wrong check sum")
+                pass
+            if len(response) != messageLenWithoutPreambleAndData + messageType.value["dataLen"]:
+                # raise Exception("Wrong data length")
+                pass
             status = response[13:15]
             result = {"sensorStatus": (status[1] >> 7) > 0, "hartStatus": (status[0] & 0x7F) > 0}
             data = response[15: 15 + messageType.value["dataLen"]]

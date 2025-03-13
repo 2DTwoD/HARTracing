@@ -29,6 +29,9 @@ class MonitorLine(list):
         else:
             self.value.setBorderColor(valueUpdateColorList[int(condition)])
 
+    def getValue(self):
+        return self.value.text()
+
     def setValueColor(self, color: str):
         self.value.setColor(color)
 
