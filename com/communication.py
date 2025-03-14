@@ -73,10 +73,11 @@ class Com:
                 self.port.reset_output_buffer()
                 with self.lock:
                     messageType, data = self.cycleCommandSeq[self.cycleIndex]
-                command, length = self.hartConnector.getCommandAndLength(messageType, data=data)
+                command = self.hartConnector.getCommand(messageType, data=data)
 
                 self.port.write(command)
-                response = self.port.read(length)
+
+                response = self.port.read(100)
 
                 result = self.hartConnector.parseResponse(response, messageType)
                 if result is None:
@@ -133,7 +134,8 @@ class Com:
         self.parity = parity
         self.stopBits = stopBits
 
-        self.cycleCommandSeq = [(MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE, None),
+        self.cycleCommandSeq = [(MessageType.READ_UNIQUE_IDENTIFIER, None),
+                                (MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE, None),
                                 (MessageType.READ_TAG_DESCRIPTOR_DATE, None),
                                 (MessageType.READ_PRIMARY_VARIABLE, None),
                                 (MessageType.READ_OUTPUT_INFORMATION, None), ]

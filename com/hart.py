@@ -87,8 +87,6 @@ unitDict = {
 }
 
 preambleLen = 5
-messageLenWithoutPreambleAndData = 7 + preambleLen
-
 
 class FrameType(Enum):
     SHORT = 0x02
@@ -102,28 +100,24 @@ class DeleteFlag(Enum):
 
 
 class MessageType(Enum):
-    READ_UNIQUE_IDENTIFIER = {"commandNumber": 0, "dataLen": 12, "deleteFlag": DeleteFlag.SUCCESS}
-    READ_PRIMARY_VARIABLE = {"commandNumber": 1, "dataLen": 5, "deleteFlag": DeleteFlag.NEVER}
-    READ_CURRENT_AND_PERCENT_OF_RANGE = {"commandNumber": 2, "dataLen": 8, "deleteFlag": DeleteFlag.NEVER}
-    READ_TAG_DESCRIPTOR_DATE = {"commandNumber": 13, "dataLen": 21, "deleteFlag": DeleteFlag.SUCCESS}
-    READ_OUTPUT_INFORMATION = {"commandNumber": 15, "dataLen": 17, "deleteFlag": DeleteFlag.SUCCESS}
-    WRITE_TAG_DESCRIPTOR_DATE = {"commandNumber": 18, "dataLen": 21, "deleteFlag": DeleteFlag.ONCE}
-    WRITE_RANGE_VALUES = {"commandNumber": 35, "dataLen": 9, "deleteFlag": DeleteFlag.ONCE}
-    SET_UPPER_RANGE_VALUE = {"commandNumber": 36, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE}
-    SET_LOWER_RANGE_VALUE = {"commandNumber": 37, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE}
-    SET_TRIM_PV_ZERO = {"commandNumber": 43, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE}
-    WRITE_PV_UNITS = {"commandNumber": 44, "dataLen": 1, "deleteFlag": DeleteFlag.ONCE}
+    READ_UNIQUE_IDENTIFIER = {"commandNumber": 0, "dataLen": 12, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.SHORT}
+    READ_PRIMARY_VARIABLE = {"commandNumber": 1, "dataLen": 5, "deleteFlag": DeleteFlag.NEVER, "frameType": FrameType.LONG}
+    READ_CURRENT_AND_PERCENT_OF_RANGE = {"commandNumber": 2, "dataLen": 8, "deleteFlag": DeleteFlag.NEVER, "frameType": FrameType.LONG}
+    READ_TAG_DESCRIPTOR_DATE = {"commandNumber": 13, "dataLen": 21, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.LONG}
+    READ_OUTPUT_INFORMATION = {"commandNumber": 15, "dataLen": 17, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.LONG}
+    WRITE_TAG_DESCRIPTOR_DATE = {"commandNumber": 18, "dataLen": 21, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    WRITE_RANGE_VALUES = {"commandNumber": 35, "dataLen": 9, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    SET_UPPER_RANGE_VALUE = {"commandNumber": 36, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    SET_LOWER_RANGE_VALUE = {"commandNumber": 37, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    SET_TRIM_PV_ZERO = {"commandNumber": 43, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    WRITE_PV_UNITS = {"commandNumber": 44, "dataLen": 1, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
 
 
 class HARTconnector:
-    def __init__(self, address=0, frame=FrameType.LONG):
-        self.address = address
-        self.frame = frame
+    def __init__(self):
+        self.addressList = [0, 0, 0, 0, 0]
 
-    def changeAddress(self, address):
-        self.address = address
-
-    def getRequestMessage(self, command, data=None):
+    def getRequestMessage(self, command, frameType=FrameType.SHORT, data=None):
         if data is None:
             data = []
         message = []
@@ -131,13 +125,13 @@ class HARTconnector:
         for _ in range(preambleLen):
             message.append(0xFF)
         # startByte (1 byte)
-        message.append(self.frame.value)
-        # address (1)
-        message.append(0x80 | self.address)
-        if self.frame == FrameType.LONG:
+        message.append(frameType.value)
+        # address (1 byte)
+        message.append(0x80 | self.addressList[0])
+        if frameType == FrameType.LONG:
             # expansion (4 bytes)
-            for _ in range(4):
-                message.append(0)
+            for i in range(1, 5):
+                message.append(self.addressList[i])
         # command (1 byte)
         message.append(command)
         # count (1 byte)
@@ -149,27 +143,43 @@ class HARTconnector:
         message.append(self.getCheckSum(message[5:]))
         return bytes(message)
 
-    def getCommandAndLength(self, messageType: MessageType, data=None):
-        message = self.getRequestMessage(messageType.value["commandNumber"], data=data)
-        return message, len(message) + messageType.value["dataLen"] + 2
+    def updateAddressList(self, idCode=0, typeCode=0, idNumB1=0, idNumB2=0, idNumB3=0):
+        self.addressList[0] = idCode & 0x3F
+        self.addressList[1] = typeCode
+        self.addressList[2] = idNumB1
+        self.addressList[3] = idNumB2
+        self.addressList[4] = idNumB3
+
+    def getCommand(self, messageType: MessageType, data=None):
+        return self.getRequestMessage(messageType.value["commandNumber"],
+                                      frameType=messageType.value["frameType"],
+                                      data=data)
 
     def parseResponse(self, response: bytes, messageType: MessageType):
         try:
-            receivedCheckSum = response[-1]
-            calculatedCheckSum = HARTconnector.getCheckSum(response[5:-1])
+            respPreamble = 0
+            for b in response:
+                if b != 0xFF:
+                    break
+                respPreamble += 1
+            expansionLen = 4 if messageType.value["frameType"] == FrameType.LONG else 0
+            count = response[respPreamble + 3 + expansionLen]
+            dataLen = count - 2
+            messageLength = respPreamble + 7 + expansionLen + dataLen
+            receivedCheckSum = response[messageLength - 1]
+            calculatedCheckSum = HARTconnector.getCheckSum(response[respPreamble:messageLength - 1])
 
             if receivedCheckSum != calculatedCheckSum:
                 raise Exception("Wrong check sum")
 
-            messageLength = (messageLenWithoutPreambleAndData + messageType.value["dataLen"]
-                             + (0 if self.frame == FrameType.SHORT else 4))
-            if len(response) != messageLength:
-                raise Exception("Wrong data length")
-
-            status = response[13:15]
+            status = response[9 + expansionLen: 11 + expansionLen]
             result = {"sensorStatus": (status[1] >> 7) > 0, "hartStatus": (status[0] & 0x7F) > 0}
-            data = response[15: 15 + messageType.value["dataLen"]]
-            if messageType == MessageType.READ_PRIMARY_VARIABLE:
+            data = response[11 + expansionLen: 11 + expansionLen + dataLen]
+
+            if messageType == MessageType.READ_UNIQUE_IDENTIFIER:
+                self.updateAddressList(idCode=data[1], typeCode=data[2],
+                                       idNumB1=data[9], idNumB2=data[10], idNumB3=data[11])
+            elif messageType == MessageType.READ_PRIMARY_VARIABLE:
                 result["unit"] = data[0]
                 result["measure"] = round(struct.unpack('>f', data[1:])[0], 3)
             elif messageType == MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE:
