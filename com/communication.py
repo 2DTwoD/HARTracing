@@ -4,7 +4,7 @@ from enum import Enum
 
 from serial.serialutil import SerialException
 
-from com.hart import HARTconnector, MessageType, DeleteFlag
+from com.hart import HARTconnector, MessageType, DeleteFlag, FrameType
 
 import serial.tools.list_ports
 import serial
@@ -32,7 +32,7 @@ class Com:
         self.cycleCommandSeq = []
         self.hartConnector = HARTconnector()
         self.firstScan = False
-        self.dataReaded = False
+        self.dataReaded = True
 
         # Имя порта (=COM?)
         self.device = "COM1"
@@ -42,15 +42,8 @@ class Com:
         self.parity = "O"
         # Стоповые биты (=2)
         self.stopBits = 2
-#       Период обмена, сек
-        self.sendPeriod = 0.4
-#       Время возникновения ошибки передачи, если нет ответа, сек
-        self.readTimeOut = 1
-#       Время визуализации ошибки связи, сек
-        self.errorVis = 1
-
-        self.errorVis = int(self.errorVis / self.sendPeriod)
-        self.errorCounter = self.errorVis
+        # Время приема сообщения, сек
+        self.recvPeriod = 0.3
 
     def send(self, messageType: MessageType, data=None):
         if self.disconnected():
@@ -65,10 +58,9 @@ class Com:
     def runSending(self):
         try:
             self.port = serial.Serial(self.device, baudrate=self.baudrate, parity=self.parity, stopbits=self.stopBits)
-            self.port.timeout = self.readTimeOut
+            self.port.timeout = 0
 
             while self.start:
-                time.sleep(self.sendPeriod)
                 self.port.reset_input_buffer()
                 self.port.reset_output_buffer()
                 with self.lock:
@@ -76,8 +68,13 @@ class Com:
                 command = self.hartConnector.getCommand(messageType, data=data)
 
                 self.port.write(command)
-
-                response = self.port.read(100)
+                response = bytearray()
+                while 1:
+                    time.sleep(self.recvPeriod)
+                    b = self.port.readall()
+                    if b == b'':
+                        break
+                    response.extend(b)
 
                 result = self.hartConnector.parseResponse(response, messageType)
                 if result is None:
@@ -85,6 +82,7 @@ class Com:
                     if messageType.value["deleteFlag"] == DeleteFlag.ONCE:
                         self.deleteItem()
                 else:
+                    self.status = CommStatus.CONNECT
                     self.comDict.setAll(result)
                     if messageType.value["deleteFlag"] != DeleteFlag.NEVER:
                         self.deleteItem()
@@ -94,15 +92,6 @@ class Com:
                 if self.cycleIndex >= len(self.cycleCommandSeq):
                     self.cycleIndex = 0
                     self.firstScan = False
-
-                if self.status != CommStatus.CONNECT:
-                    self.errorCounter -= 1
-                    if self.errorCounter <= 0:
-                        if result is not None:
-                            self.status = CommStatus.CONNECT
-                        self.errorCounter = self.errorVis
-                else:
-                    self.errorCounter = self.errorVis
 
         except SerialException:
             self.status = CommStatus.LINK_ERROR
@@ -138,7 +127,8 @@ class Com:
                                 (MessageType.READ_CURRENT_AND_PERCENT_OF_RANGE, None),
                                 (MessageType.READ_TAG_DESCRIPTOR_DATE, None),
                                 (MessageType.READ_PRIMARY_VARIABLE, None),
-                                (MessageType.READ_OUTPUT_INFORMATION, None), ]
+                                (MessageType.READ_OUTPUT_INFORMATION, None)]
+        self.hartConnector.fillAddressZero()
         self.firstScan = True
         self.dataReaded = False
         self.thread = threading.Thread(target=self.runSending)

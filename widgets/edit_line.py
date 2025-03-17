@@ -38,11 +38,25 @@ class EditLine(MonitorLine):
         else:
             self.editField.setText(str(value))
 
-    def checkDifference(self):
-        if self.getEditValue() != self.getValue():
-            self.editField.setBackground(differenceColorList[1])
+    def checkDifference(self, numeric=False):
+        editVal = None
+        val = None
+        if numeric:
+            try:
+                editVal = float(self.getEditValue())
+            except:
+                pass
+            try:
+                val = float(self.getValue())
+            except:
+                pass
         else:
+            editVal = self.getEditValue().strip().lower()
+            val = self.getValue().strip().lower()
+        if editVal is not None and val is not None and editVal == val:
             self.editField.setBackground(differenceColorList[0])
+        else:
+            self.editField.setBackground(differenceColorList[1])
 
     def getEditWidget(self):
         return self[2]

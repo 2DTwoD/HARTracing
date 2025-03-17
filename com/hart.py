@@ -86,11 +86,17 @@ unitDict = {
     "unknown": 252
 }
 
-preambleLen = 5
+requestPreambleLen = 5
+startCharacterLen = 1
+commandLen = 1
+countLen = 1
+statusLen = 2
+checkSumLen = 1
+
 
 class FrameType(Enum):
-    SHORT = 0x02
-    LONG = 0x82
+    SHORT = {"startChar": 0x02, "expansion": 0}
+    LONG = {"startChar": 0x82, "expansion": 4}
 
 
 class DeleteFlag(Enum):
@@ -100,32 +106,36 @@ class DeleteFlag(Enum):
 
 
 class MessageType(Enum):
-    READ_UNIQUE_IDENTIFIER = {"commandNumber": 0, "dataLen": 12, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.SHORT}
-    READ_PRIMARY_VARIABLE = {"commandNumber": 1, "dataLen": 5, "deleteFlag": DeleteFlag.NEVER, "frameType": FrameType.LONG}
-    READ_CURRENT_AND_PERCENT_OF_RANGE = {"commandNumber": 2, "dataLen": 8, "deleteFlag": DeleteFlag.NEVER, "frameType": FrameType.LONG}
-    READ_TAG_DESCRIPTOR_DATE = {"commandNumber": 13, "dataLen": 21, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.LONG}
-    READ_OUTPUT_INFORMATION = {"commandNumber": 15, "dataLen": 17, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.LONG}
-    WRITE_TAG_DESCRIPTOR_DATE = {"commandNumber": 18, "dataLen": 21, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
-    WRITE_RANGE_VALUES = {"commandNumber": 35, "dataLen": 9, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
-    SET_UPPER_RANGE_VALUE = {"commandNumber": 36, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
-    SET_LOWER_RANGE_VALUE = {"commandNumber": 37, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
-    SET_TRIM_PV_ZERO = {"commandNumber": 43, "dataLen": 0, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
-    WRITE_PV_UNITS = {"commandNumber": 44, "dataLen": 1, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    READ_UNIQUE_IDENTIFIER = {"commandNumber": 0, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.SHORT}
+    READ_PRIMARY_VARIABLE = {"commandNumber": 1, "deleteFlag": DeleteFlag.NEVER, "frameType": FrameType.LONG}
+    READ_CURRENT_AND_PERCENT_OF_RANGE = {"commandNumber": 2, "deleteFlag": DeleteFlag.NEVER, "frameType": FrameType.LONG}
+    READ_TAG_DESCRIPTOR_DATE = {"commandNumber": 13, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.LONG}
+    READ_OUTPUT_INFORMATION = {"commandNumber": 15, "deleteFlag": DeleteFlag.SUCCESS, "frameType": FrameType.LONG}
+    WRITE_TAG_DESCRIPTOR_DATE = {"commandNumber": 18, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    WRITE_RANGE_VALUES = {"commandNumber": 35, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    SET_UPPER_RANGE_VALUE = {"commandNumber": 36, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    SET_LOWER_RANGE_VALUE = {"commandNumber": 37, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    SET_TRIM_PV_ZERO = {"commandNumber": 43, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    WRITE_PV_UNITS = {"commandNumber": 44, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
 
 
 class HARTconnector:
     def __init__(self):
         self.addressList = [0, 0, 0, 0, 0]
 
+    def fillAddressZero(self):
+        for i in range(len(self.addressList)):
+            self.addressList[i] = 0
+
     def getRequestMessage(self, command, frameType=FrameType.SHORT, data=None):
         if data is None:
             data = []
         message = []
         # Preamble (5 bytes)
-        for _ in range(preambleLen):
+        for _ in range(requestPreambleLen):
             message.append(0xFF)
         # startByte (1 byte)
-        message.append(frameType.value)
+        message.append(frameType.value["startChar"])
         # address (1 byte)
         message.append(0x80 | self.addressList[0])
         if frameType == FrameType.LONG:
@@ -157,24 +167,29 @@ class HARTconnector:
 
     def parseResponse(self, response: bytes, messageType: MessageType):
         try:
-            respPreamble = 0
+            responsePreambleLen = 0
             for b in response:
                 if b != 0xFF:
                     break
-                respPreamble += 1
-            expansionLen = 4 if messageType.value["frameType"] == FrameType.LONG else 0
-            count = response[respPreamble + 3 + expansionLen]
-            dataLen = count - 2
-            messageLength = respPreamble + 7 + expansionLen + dataLen
+                responsePreambleLen += 1
+
+            addressLen = 1 + messageType.value["frameType"].value["expansion"]
+            countStartIndex = responsePreambleLen + startCharacterLen + addressLen + commandLen
+            statusStartIndex = countStartIndex + countLen
+            dataStartIndex = statusStartIndex + statusLen
+            count = response[countStartIndex]
+            dataLen = count - statusLen
+            messageLength = dataStartIndex + dataLen + checkSumLen
+
             receivedCheckSum = response[messageLength - 1]
-            calculatedCheckSum = HARTconnector.getCheckSum(response[respPreamble:messageLength - 1])
+            calculatedCheckSum = HARTconnector.getCheckSum(response[responsePreambleLen:messageLength - 1])
 
             if receivedCheckSum != calculatedCheckSum:
                 raise Exception("Wrong check sum")
 
-            status = response[9 + expansionLen: 11 + expansionLen]
-            result = {"sensorStatus": (status[1] >> 7) > 0, "hartStatus": (status[0] & 0x7F) > 0}
-            data = response[11 + expansionLen: 11 + expansionLen + dataLen]
+            status = response[statusStartIndex: dataStartIndex]
+            result = {"sensorStatus": status[1], "hartStatus": status[0]}
+            data = response[dataStartIndex: dataStartIndex + dataLen]
 
             if messageType == MessageType.READ_UNIQUE_IDENTIFIER:
                 self.updateAddressList(idCode=data[1], typeCode=data[2],
