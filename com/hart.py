@@ -94,6 +94,12 @@ statusLen = 2
 checkSumLen = 1
 
 
+def getUnitKeyFromValue(value):
+    for key, val in unitDict.items():
+        if val == value:
+            return key
+    return "единица"
+
 class FrameType(Enum):
     SHORT = {"startChar": 0x02, "expansion": 0}
     LONG = {"startChar": 0x82, "expansion": 4}
@@ -115,6 +121,7 @@ class MessageType(Enum):
     WRITE_RANGE_VALUES = {"commandNumber": 35, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
     SET_UPPER_RANGE_VALUE = {"commandNumber": 36, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
     SET_LOWER_RANGE_VALUE = {"commandNumber": 37, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
+    RESET_CONFIG_CHANGE_FLAG = {"commandNumber": 38, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
     SET_TRIM_PV_ZERO = {"commandNumber": 43, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
     WRITE_PV_UNITS = {"commandNumber": 44, "deleteFlag": DeleteFlag.ONCE, "frameType": FrameType.LONG}
 
@@ -204,6 +211,7 @@ class HARTconnector:
                 result["tag"] = HARTconnector.getASCIIstr(data[0:6])
                 result["descriptorDate"] = data[6:]
             elif messageType == MessageType.READ_OUTPUT_INFORMATION:
+                result["rangeUnit"] = data[2]
                 result["4mA"] = round(struct.unpack('>f', data[7: 11])[0], 3)
                 result["20mA"] = round(struct.unpack('>f', data[3: 7])[0], 3)
             return result

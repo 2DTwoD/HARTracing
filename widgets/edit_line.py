@@ -6,10 +6,11 @@ from widgets.text_field import TextField
 
 differenceColorList = ["white", "yellow"]
 
+
 class EditLine(MonitorLine):
     def __init__(self, labelText, lineType: LineType, color="black", background="white", editValue=None, editLen=None,
-                 editNumeric=False):
-        super().__init__(labelText, color=color, background=background)
+                 editNumeric=False, unitEn=True):
+        super().__init__(labelText, color=color, background=background, unitEn=unitEn)
 
         if lineType == LineType.UNIT:
             self.editField = ComboBox()
@@ -31,6 +32,8 @@ class EditLine(MonitorLine):
             return self.editField.text()
 
     def setEditValue(self, value):
+        if value is None:
+            return
         if type(self.editField) is ComboBox:
             index = self.editField.findText(str(value))
             if index != -1:

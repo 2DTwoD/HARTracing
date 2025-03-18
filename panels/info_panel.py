@@ -1,12 +1,12 @@
 from PyQt6.QtWidgets import QWidget, QGridLayout
 
 from com.communication import CommStatus
+from com.hart import getUnitKeyFromValue
 from misc.updater import Updater
 from widgets.monitor_line import MonitorLine
 from widgets.status import Status
 from misc import di
 
-statusColorList = ["green", "red"]
 statusTextList = ["Норм.", "Ошибка"]
 
 
@@ -24,8 +24,9 @@ class InfoPanel(QWidget, Updater):
                                     "Аналог. вых. зафикс.",
                                     "Больше статусов доступно",
                                     "Холодный старт",
-                                    "Конфиг. изменена",
+                                    "Конфиг-ия изменена",
                                     "Неисправн. полевого устр-ва"], 0)
+
         self.hartStatus = Status("Статус связи по HART:",
                                    ["Переполнение буфера",
                                     "Ошибка связи",
@@ -33,7 +34,8 @@ class InfoPanel(QWidget, Updater):
                                     "Ошибка кадра",
                                     "Перезапись данных",
                                     "Ошибка вертикальной четности"], 1)
-        self.measureMonitor = MonitorLine("Измеренное значение:")
+
+        self.measureMonitor = MonitorLine("Измер. знач.:")
         self.currentMonitor = MonitorLine("Выход датчика (мА):")
         self.percentMonitor = MonitorLine("Выход датчика (%):")
         self.calcMonitor = MonitorLine("Выход расчетный:")
@@ -69,16 +71,29 @@ class InfoPanel(QWidget, Updater):
         grid.addWidget(self.calcMonitor.getLabelWidget(), row, 6)
         grid.addWidget(self.calcMonitor.getValueWidget(), row, 7)
 
+        self.currentMonitor.setUnit("мА")
+        self.percentMonitor.setUnit("%")
+
         self.setLayout(grid)
         self.startUpdate()
 
     def updateAction(self):
         comError = self.com.status != CommStatus.CONNECT
+        unitStr = getUnitKeyFromValue(self.comDict.getValue("unit"))
+        rangeUnitStr = getUnitKeyFromValue(self.comDict.getValue("rangeUnit"))
         self.sensorStatus.update(self.comDict.get("sensorStatus"), errorStatus=comError)
         self.hartStatus.update(self.comDict.get("hartStatus"), errorStatus=comError)
         self.measureMonitor.setValue(self.comDict.get("measure"), errorStatus=comError)
+        self.measureMonitor.setUnit(unitStr)
         self.currentMonitor.setValue(self.comDict.get("current"), errorStatus=comError)
         self.percentMonitor.setValue(self.comDict.get("percent"), errorStatus=comError)
+
         lowerLim = self.comDict.get("4mA")
-        calcValue = lowerLim + (self.comDict.get("20mA") - lowerLim) * self.comDict.get("percent") / 100.0
+        upperLim = self.comDict.get("20mA")
+        percent = self.comDict.get("percent")
+        if lowerLim is None or upperLim is None or percent is None:
+            calcValue = 0
+        else:
+            calcValue = lowerLim + (upperLim - lowerLim) * percent / 100.0
         self.calcMonitor.setValue(round(calcValue, 2), errorStatus=comError)
+        self.calcMonitor.setUnit(rangeUnitStr)

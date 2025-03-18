@@ -13,7 +13,8 @@ connectButtonColors = ["gray", "#F0F0F0"]
 baudDict = {"600": 600, "1200 (+)": 1200, "2400": 2400, "4800": 4800, "9600": 9600,
             "19200": 19200, "57600": 57600, "115200": 115200}
 parityDict = {"Нет": 'N', "Чет.": 'E', "Нечет.(+)": 'O'}
-bitDict = {"1": 1, "1.5": 1.5, "2 (+)": 2}
+bitDict = {"1": 1, "2 (+)": 2}
+
 
 class ComPanel(QWidget, Updater):
     def __init__(self):
@@ -39,10 +40,10 @@ class ComPanel(QWidget, Updater):
 
         self.row = 0
         self.column = 1
-        self.addItemToLayout(Label("COM-порт:"))
-        self.addItemToLayout(Label("Скорость:"))
-        self.addItemToLayout(Label("Четность:"))
-        self.addItemToLayout(Label("Стоп-биты:"))
+        self.addItemToLayout(Label("COM-порт:", height=15, align=Align.CENTER, color="gray"))
+        self.addItemToLayout(Label("Скорость:", height=15, align=Align.CENTER, color="gray"))
+        self.addItemToLayout(Label("Четность:", height=15, align=Align.CENTER, color="gray"))
+        self.addItemToLayout(Label("Стоп-биты:", height=15, align=Align.CENTER, color="gray"))
         self.row = 1
         self.column = 0
         self.addItemToLayout(label)
@@ -56,7 +57,7 @@ class ComPanel(QWidget, Updater):
 
         self.baudCombo.setCurrentIndex(1)
         self.parityCombo.setCurrentIndex(2)
-        self.bitCombo.setCurrentIndex(2)
+        self.bitCombo.setCurrentIndex(1)
 
         self.connect.clicked.connect(self.connectClick)
         self.disconnect.clicked.connect(self.disconnectClick)

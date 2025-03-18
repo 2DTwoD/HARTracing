@@ -3,7 +3,7 @@ import struct
 from PyQt6.QtWidgets import QWidget, QGridLayout
 
 from com.communication import CommStatus
-from com.hart import unitDict, HARTconnector, MessageType
+from com.hart import unitDict, HARTconnector, MessageType, getUnitKeyFromValue
 from misc.types import LineType
 from misc.updater import Updater
 from widgets.dialog import Confirm
@@ -19,10 +19,10 @@ class EditPanel(QWidget, Updater):
         self.grid = QGridLayout()
         self.row = 0
         self.column = 0
-        self.unitLine = EditLine("Единица измерения: ", LineType.UNIT, editValue=unitDict.keys())
-        self.tagLine = EditLine("Метка (тег): ", LineType.TAG, editLen=8)
-        self.mA4Line = EditLine("4мА: ", LineType.mA4, editNumeric=True)
-        self.mA20Line = EditLine("20мА", LineType.mA20, editNumeric=True)
+        self.unitLine = EditLine("Единица измерения: ", LineType.UNIT, editValue=unitDict.keys(), unitEn=False)
+        self.tagLine = EditLine("Метка (тег): ", LineType.TAG, editLen=8, unitEn=False)
+        self.mA4Line = EditLine("Нижн. предел (4мА): ", LineType.mA4, editNumeric=True)
+        self.mA20Line = EditLine("Верхн. предел (20мА)", LineType.mA20, editNumeric=True)
 
         self.addWidgets(self.unitLine)
         self.addWidgets(self.mA4Line)
@@ -67,23 +67,26 @@ class EditPanel(QWidget, Updater):
 
     def currentRangeApply(self, upperEn=False, lowerEn=False):
         confirmText = "???"
+        mA4EditVal = self.mA4Line.getEditValue()
+        mA20EditVal = self.mA20Line.getEditValue()
         if upperEn:
-            confirmText = f"Применить значение '{self.mA20Line.getEditValue()}' для 20мА?"
+            confirmText = f"Применить значение '{mA20EditVal}' для 20мА?"
         elif lowerEn:
-            confirmText = f"Применить значение '{self.mA4Line.getEditValue()}' для 4мА?"
+            confirmText = f"Применить значение '{mA4EditVal}' для 4мА?"
 
         if Confirm(confirmText).cancel():
             return
-        if (self.comDict.getValue("unit") is None) or (self.comDict.getValue("4mA") is None) or (self.comDict.getValue("20mA") is None):
+        if (self.comDict.getValue("rangeUnit") is None) or (self.comDict.getValue("4mA") is None) or (self.comDict.getValue("20mA") is None):
+            return
+
+        try:
+            lowerValue = float(mA4EditVal) if lowerEn else self.comDict.getValue("4mA")
+            upperValue = float(mA20EditVal) if upperEn else self.comDict.getValue("20mA")
+        except:
             return
 
         data = bytearray()
-        data.append(self.comDict.getValue("unit"))
-        try:
-            lowerValue = float(self.mA4Line.getEditValue()) if lowerEn else self.comDict.getValue("4mA")
-            upperValue = float(self.mA20Line.getEditValue()) if upperEn else self.comDict.getValue("20mA")
-        except:
-            return
+        data.append(self.comDict.getValue("rangeUnit"))
         data.extend(bytearray(struct.pack(">f", upperValue)))
         data.extend(bytearray(struct.pack(">f", lowerValue)))
         self.com.send(MessageType.WRITE_RANGE_VALUES, data)
@@ -107,15 +110,14 @@ class EditPanel(QWidget, Updater):
 
     def updateAction(self):
         comError = self.com.status != CommStatus.CONNECT
-        unitStr = "Не определен"
-        for key, val in unitDict.items():
-            if val == self.comDict.getValue("unit"):
-                unitStr = key
-                break
+        unitStr = getUnitKeyFromValue(self.comDict.getValue("unit"))
+        rangeUnitStr = getUnitKeyFromValue(self.comDict.getValue("rangeUnit"))
         self.unitLine.setValue(unitStr, errorStatus=comError)
         self.tagLine.setValue(self.comDict.getValue("tag"), errorStatus=comError)
         self.mA4Line.setValue(self.comDict.getValue("4mA"), errorStatus=comError)
+        self.mA4Line.setUnit(rangeUnitStr)
         self.mA20Line.setValue(self.comDict.getValue("20mA"), errorStatus=comError)
+        self.mA20Line.setUnit(rangeUnitStr)
         self.unitLine.checkDifference()
         self.tagLine.checkDifference()
         self.mA4Line.checkDifference(numeric=True)

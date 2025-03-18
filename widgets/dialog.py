@@ -20,8 +20,9 @@ class Confirm(QDialog):
         grid.addWidget(message, 0, 0, 1, 2)
         grid.addWidget(yesBut, 1, 0, 1, 1)
         grid.addWidget(cancelBut, 1, 1, 1, 1)
+
         self.setLayout(grid)
-        self.setFixedSize(250, 100)
+        self.setFixedSize(280, 100)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.WindowCloseButtonHint)
 
     def yes(self):

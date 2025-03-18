@@ -4,7 +4,7 @@ from enum import Enum
 
 from serial.serialutil import SerialException
 
-from com.hart import HARTconnector, MessageType, DeleteFlag, FrameType
+from com.hart import HARTconnector, MessageType, DeleteFlag
 
 import serial.tools.list_ports
 import serial
@@ -154,4 +154,3 @@ class Com:
         if not self.firstScan and self.connected():
             self.dataReaded = True
         return result
-

@@ -5,16 +5,17 @@ class ComDict(dict):
     def __init__(self):
         super().__init__()
         self.lock = threading.Lock()
-        self.__setitem__("measure", 0x00)
-        self.__setitem__("current", 0x00)
-        self.__setitem__("percent", 0x00)
-        self.__setitem__("sensorStatus",  0x00)
-        self.__setitem__("hartStatus", 0x00)
-        self.__setitem__("unit", 252)
+        self.__setitem__("measure", None)
+        self.__setitem__("current", None)
+        self.__setitem__("percent", None)
+        self.__setitem__("sensorStatus",  None)
+        self.__setitem__("hartStatus", None)
+        self.__setitem__("unit", None)
         self.__setitem__("tag", "--------")
         self.__setitem__("descriptorDate", None)
-        self.__setitem__("4mA", 0x00)
-        self.__setitem__("20mA", 0x00)
+        self.__setitem__("rangeUnit", None)
+        self.__setitem__("4mA", None)
+        self.__setitem__("20mA", None)
 
     def set(self, key, value):
         with self.lock:
